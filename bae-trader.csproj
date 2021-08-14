@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>bae_trader</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="LineCommander" Version="1.0.9"/>
+    <PackageReference Include="Alpaca.Markets" Version="5.1.0-rc1"/>
+    <PackageReference Include="Alpaca.Markets.Extensions" Version="5.1.0-rc1"/>
+  </ItemGroup>
+</Project>
