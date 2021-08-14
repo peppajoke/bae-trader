@@ -15,13 +15,14 @@ namespace BaeTrader.Commands
         private const double MIN_PRICE_IN_DOLLARS = .5;
 
 
-        public override Task<bool> Execute(IEnumerable<string> arguments)
+        public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
             // check args for market
             // check args for budget
             // load market
             // sort by price
 
+            return true;
         }
 
         public override IEnumerable<string> MatchingBaseCommands()
