@@ -40,3 +40,7 @@ To make things simple, you can also specify the starting command for Bae-trader.
 `dotnet run -- paper auto`
 
 This will automatically launch Bae-trader into auto-investing in the paper environment with a single command.
+
+# Configuring Bae-trader
+
+Too lazy to fill this out. For now, just take a look at the json configs and figure out how to configure bae-trader to work how you want.
