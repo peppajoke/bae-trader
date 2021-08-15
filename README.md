@@ -21,16 +21,22 @@ Once you run bae-trader, you can execute several commands for interacting with y
 ## Autoinvest
 `autoinvest` or `auto`
 
-The autoinvest command will wake up and make trades every 5 minutes in the environment specified.
+The autoinvest command will wake up and make trades every n minutes (configured in json settings) in the environment specified.
 
-autoinvest optional arguments:
+## Buy
+`buy`
 
-`-c chaos mode. Adds some randomness to your investment strategy so that it's diverse between runs`
+If you don't want Bae-trader buying autonomously, you can just ask it to buy stocks using the buy command. Bae-trader's buy settings will be pulled from your json configuration mentioned above.
 
-`-b=100 budget=100, lets you specify how much money to invest at most, in dollars`
 
-`-real invests in the real world. By default, bae-trader will run simulations against a "paper" stock environment`
+## Sell
+`sell`
 
-You can also auto-start autoinvesting with a single command from dotnet:
+If you don't want Bae-trader selling autonomously, you can just ask it to sell stocks using the sell command. Bae-trader's sell settings will be pulled from your json configuration mentioned above.
+
+# Running Bae-trader with a single command
+To make things simple, you can also specify the starting command for Bae-trader. This will allow you to enable autonomous trading as soon as you launch Bae-trader. For example...
 
 `dotnet run -- paper auto`
+
+This will automatically launch Bae-trader into auto-investing in the paper environment with a single command.
