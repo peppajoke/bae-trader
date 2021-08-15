@@ -8,5 +8,6 @@
     <PackageReference Include="LineCommander" Version="1.0.9"/>
     <PackageReference Include="Alpaca.Markets" Version="5.1.0-rc1"/>
     <PackageReference Include="Alpaca.Markets.Extensions" Version="5.1.0-rc1"/>
+    <PackageReference Include="morelinq" Version="3.3.2"/>
   </ItemGroup>
 </Project>
