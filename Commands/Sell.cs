@@ -9,8 +9,11 @@ namespace bae_trader.Commands
 {
     public class Sell : BaseCommand
     {
-
-        private AlpacaEnvironment _environment;
+        public Sell(AlpacaEnvironment environment = null)
+        {
+            _environment = environment ?? new AlpacaEnvironment();
+        }
+        private AlpacaEnvironment _environment = new AlpacaEnvironment();
 
         private bool UsePaperEnvironment = true; // flip this to paper when you don't want REAL trades
 
@@ -44,11 +47,44 @@ namespace bae_trader.Commands
             foreach (var position in positions)
             {
                 Console.WriteLine(position.ToString());
+                MakeSaleDecision(position);
             }
             // get all stonks we have currently
             // calculate % return for selling them
             // make a call for selling them
             return true;
+        }
+
+        private void MakeSaleDecision(IPosition currentPosition)
+        {
+            if (currentPosition.AssetChangePercent <= 0)
+            {
+                // this sale would be a loss, so don't do it.
+                return;
+            }
+
+            var percentIncrease = currentPosition.AssetChangePercent * 100;
+
+            // don't sell more than half your assets
+            var percentToSell = Math.Min(50, percentIncrease);
+
+            var unitsToSell = Decimal.ToInt64(currentPosition.IntegerQuantity * (percentToSell*100));
+
+            if (unitsToSell > 0)
+            {
+                var newOrderRequest = new NewOrderRequest(
+                    currentPosition.Symbol,
+                    unitsToSell,
+                    OrderSide.Buy,
+                    OrderType.Market,
+                    TimeInForce.Gtc
+                );
+
+                // SELL STONKS!!
+                _environment.alpacaTradingClient.PostOrderAsync(
+                    newOrderRequest
+                );
+            }
         }
 
         public override IEnumerable<string> MatchingBaseCommands()

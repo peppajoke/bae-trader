@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using LineCommander;
 using System;
+using bae_trader.Configuration;
 
 namespace bae_trader.Commands
 {
@@ -11,10 +12,12 @@ namespace bae_trader.Commands
 
         private Buy buyer;
         private Sell seller;
+
+        private AlpacaEnvironment _environment = new AlpacaEnvironment();
         public AutoInvest()
         {
-            buyer = new Buy();
-            seller = new Sell();
+            buyer = new Buy(_environment);
+            seller = new Sell(_environment);
         }
         public override string Description()
         {
@@ -23,16 +26,37 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
+             // default to a paper environment for safety
+            _environment.SetEnvironment(true);
+
+            Console.WriteLine("Bae-trader: I am awake.");
+            foreach(var arg in arguments)
+            {
+                if (arg == "-real")
+                {
+                    // Trade in the real world.
+                    _environment.SetEnvironment(false);
+
+                    Console.WriteLine("Bae-trader: Autoinvesting in the REAL MARKET...");
+                }
+            }
             // todo: Polling frequency as an arg
             while(true)
             {
-                Console.WriteLine("I am awake.");
+                while (!(await _environment.alpacaTradingClient.GetClockAsync()).IsOpen)
+                {
+                    Console.WriteLine("The market is not open right now. Going back to sleep for a bit...");
+                    await Task.Delay(60000);
+                }
+                Console.WriteLine("The market is open, let's get to work...");
 
                 // Sell
                 await seller.Execute(arguments);
 
                 Console.WriteLine("Buying stonks...");
-                // buyer.Execute(arguments);
+                
+                // todo, figure out if we can/should await this buy call
+                buyer.Execute(arguments);
                 Console.WriteLine("Sleeping for 5 minutes...");
                 Thread.Sleep(300000);
             }

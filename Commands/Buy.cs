@@ -12,6 +12,10 @@ namespace bae_trader.Commands
 {
     public class Buy : BaseCommand
     {
+        public Buy(AlpacaEnvironment environment = null)
+        {
+            _environment = environment ?? new AlpacaEnvironment();
+        }
         public override string Description()
         {
             return "Buys stocks. Arguments -b=100 budget $100, -real trade stocks in the real world, not in a paper environment, -m=20 make a maximum of 20 distinct investments";
@@ -21,7 +25,7 @@ namespace bae_trader.Commands
 
         private const int SPENDING_BUDGET = 100;
 
-        private AlpacaEnvironment _environment;
+        private AlpacaEnvironment _environment = new AlpacaEnvironment();
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
