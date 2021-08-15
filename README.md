@@ -10,7 +10,9 @@ here: https://github.com/peppajoke/bae-trader/blob/master/Configuration/AlpacaCr
 4. Run the program in a terminal and start trading.
 
 `dotnet build`
+
 `dotnet run`
+
 `autoinvest`
 
 The autoinvest command will wake up and make trades every 5 minutes in the environment specified.
