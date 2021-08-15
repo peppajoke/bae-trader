@@ -14,6 +14,14 @@ namespace bae_trader
             var commander = new Commander();
             await commander.AddCommands(commands);
             Console.WriteLine("I'm ready to go, what shall we do?");
+
+            if (args.Length > 0)
+            {
+                var startingCommand = args[0].Replace("\"", "");
+                Console.WriteLine("Autostarting with command: " + startingCommand);
+                await commander.SendCommandInput(startingCommand);
+            }
+
             await commander.ListenForCommands();
         }
     }

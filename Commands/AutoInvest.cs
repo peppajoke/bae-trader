@@ -43,10 +43,15 @@ namespace bae_trader.Commands
             // todo: Polling frequency as an arg
             while(true)
             {
-                while (!(await _environment.alpacaTradingClient.GetClockAsync()).IsOpen)
+                var clock = await _environment.alpacaTradingClient.GetClockAsync();
+                while (!clock.IsOpen)
                 {
-                    Console.WriteLine("The market is not open right now. Going back to sleep for a bit...");
-                    await Task.Delay(60000);
+                    Console.WriteLine("Bae-trader: The market is not open right now.");
+                    var timeUntilMarketOpen = clock.NextOpenUtc - clock.TimestampUtc;
+                    Console.WriteLine("Bae-trader: Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
+
+                    Console.WriteLine("Bae-trader: The market opens at " + clock.NextOpenUtc.Date.AddMinutes(30).AddHours(9) + " EST");
+                    await Task.Delay(Convert.ToInt32(timeUntilMarketOpen.TotalMilliseconds));
                 }
                 Console.WriteLine("The market is open, let's get to work...");
 
@@ -59,6 +64,7 @@ namespace bae_trader.Commands
                 buyer.Execute(arguments);
                 Console.WriteLine("Sleeping for 5 minutes...");
                 Thread.Sleep(300000);
+                clock = await _environment.alpacaTradingClient.GetClockAsync();
             }
         }
 

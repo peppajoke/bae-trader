@@ -15,8 +15,6 @@ namespace bae_trader.Commands
         }
         private AlpacaEnvironment _environment = new AlpacaEnvironment();
 
-        private bool UsePaperEnvironment = true; // flip this to paper when you don't want REAL trades
-
         public override string Description()
         {
             throw new System.NotImplementedException();
@@ -24,8 +22,6 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            var usePaperEnvironment = true;
-
             // default to a paper environment for safety
             _environment.SetEnvironment(true);
 
@@ -35,8 +31,6 @@ namespace bae_trader.Commands
                 {
                     // Trade in the real world.
                     _environment.SetEnvironment(false);
-
-                    usePaperEnvironment = false;
                 }
 
             }
