@@ -5,13 +5,17 @@ Stockbot for getting rich
 1. Create a free account on alpaca: https://app.alpaca.markets/
 2. Set up a paper (simulation environment) and a live account.
 3. Clone this repository on your local machine.
-3. Generate API keys for each environment on the alpaca website, and insert them into your local alpaca configuration within bae-trader
-here: https://github.com/peppajoke/bae-trader/blob/master/Configuration/AlpacaCredentials.cs
+3. Generate API keys for each environment on the alpaca website, and insert them into your local alpaca configurations within bae-trader
+here: https://github.com/peppajoke/bae-trader/blob/master/stonksettings.paper.json and here https://github.com/peppajoke/bae-trader/blob/master/stonksettings.live.json
 4. Run the program in a terminal and start trading.
 
 `dotnet build`
 
-`dotnet run`
+`dotnet run paper` to run the CLI in a paper environment
+
+`dotnet run live` to run the CLI in a real stock trading environment
+
+# Bae-trader commands
 
 `autoinvest` or `auto`
 
@@ -27,4 +31,4 @@ autoinvest optional arguments:
 
 You can also auto-start autoinvesting with a single command from dotnet:
 
-`dotnet run -- "auto -c"`
+`dotnet run -- paper auto`
