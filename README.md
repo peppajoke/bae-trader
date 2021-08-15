@@ -13,7 +13,7 @@ here: https://github.com/peppajoke/bae-trader/blob/master/Configuration/AlpacaCr
 
 `dotnet run`
 
-`autoinvest`
+`autoinvest` or `auto`
 
 The autoinvest command will wake up and make trades every 5 minutes in the environment specified.
 
@@ -24,3 +24,7 @@ autoinvest optional arguments:
 `-b=100 budget=100, lets you specify how much money to invest at most, in dollars`
 
 `-real invests in the real world. By default, bae-trader will run simulations against a "paper" stock environment`
+
+You can also auto-start autoinvesting with a single command from dotnet:
+
+`dotnet run -- "auto -c"`
