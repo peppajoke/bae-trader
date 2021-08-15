@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Alpaca.Markets;
+using bae_trader.Configuration;
 using LineCommander;
 
 namespace bae_trader.Commands
@@ -9,13 +10,7 @@ namespace bae_trader.Commands
     public class Sell : BaseCommand
     {
 
-        private IAlpacaDataClient alpacaDataClient;
-
-        private IAlpacaTradingClient alpacaTradingClient;
-
-        private IAlpacaStreamingClient alpacaStreamingClient;
-
-        private IAlpacaDataStreamingClient alpacaDataStreamingClient;
+        private AlpacaEnvironment _environment;
 
         private bool UsePaperEnvironment = true; // flip this to paper when you don't want REAL trades
 
@@ -26,7 +21,24 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            var positions = await alpacaTradingClient.ListPositionsAsync();
+            var usePaperEnvironment = true;
+
+            // default to a paper environment for safety
+            _environment.SetEnvironment(true);
+
+            foreach(var arg in arguments)
+            {
+                if (arg == "-real")
+                {
+                    // Trade in the real world.
+                    _environment.SetEnvironment(false);
+
+                    usePaperEnvironment = false;
+                }
+
+            }
+
+            var positions = await _environment.alpacaTradingClient.ListPositionsAsync();
             
             Console.WriteLine("Current positions...");
             foreach (var position in positions)

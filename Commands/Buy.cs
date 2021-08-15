@@ -19,34 +19,9 @@ namespace bae_trader.Commands
 
         private const int MAX_INVESTMENTS = 20;
 
-        private const decimal SPENDING_BUDGET = 100;
+        private const int SPENDING_BUDGET = 100;
 
-        private IAlpacaDataClient alpacaDataClient;
-
-        private IAlpacaTradingClient alpacaTradingClient;
-
-        private IAlpacaStreamingClient alpacaStreamingClient;
-
-        private IAlpacaDataStreamingClient alpacaDataStreamingClient;
-
-        private void SetEnvironment(bool usePaperEnvironment)
-        {
-            SecretKey key;
-            IEnvironment env;
-            if (usePaperEnvironment)
-            {
-                key = new SecretKey(AlpacaCredentials.PaperClientID, AlpacaCredentials.PaperClientSecret);
-                env = Environments.Paper;
-            }
-            else
-            {
-                key = new SecretKey(AlpacaCredentials.LiveClientID, AlpacaCredentials.LiveClientSecret);
-                env = Environments.Live;
-            }
-            alpacaTradingClient = env.GetAlpacaTradingClient(key);
-            alpacaDataClient = env.GetAlpacaDataClient(key);
-            alpacaStreamingClient = env.GetAlpacaStreamingClient(key);
-        }
+        private AlpacaEnvironment _environment;
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
@@ -56,14 +31,14 @@ namespace bae_trader.Commands
             var usePaperEnvironment = true;
 
             // default to a paper environment for safety
-            SetEnvironment(true);
+            _environment.SetEnvironment(true);
 
             foreach(var arg in arguments)
             {
                 if (arg == "-real")
                 {
                     // Trade in the real world.
-                    SetEnvironment(false);
+                    _environment.SetEnvironment(false);
 
                     usePaperEnvironment = false;
                 }
@@ -96,7 +71,7 @@ namespace bae_trader.Commands
             // get all market data
             foreach (var symbols in allSymbols.Batch(1000))
             {
-                var newSnapshots = await alpacaDataClient.GetSnapshotsAsync(symbols);
+                var newSnapshots = await _environment.alpacaDataClient.GetSnapshotsAsync(symbols);
                 newSnapshots.ToList().ForEach(x => snapshotsBySymbol.Add(x.Key, x.Value));
             }
 
@@ -132,16 +107,16 @@ namespace bae_trader.Commands
             }
 
             var sortedSymbols = viableSymbolsForPurchase.Values.OrderBy(x => x.Quote.BidPrice).ToList();
-            SubmitBuyOrders(sortedSymbols);
+            SubmitBuyOrders(sortedSymbols, budget);
             return true;
         }
 
-        private async void SubmitBuyOrders(List<ISnapshot> snapshots)
+        private async void SubmitBuyOrders(List<ISnapshot> snapshots, int budget)
         {
             // using max investments, take top N snapshots
             var investments = snapshots.Take(MAX_INVESTMENTS);
 
-            var budgetPerSymbol = SPENDING_BUDGET / investments.Count();
+            var budgetPerSymbol = budget / investments.Count();
 
             var orderRequests = new List<NewOrderRequest>();
 
@@ -160,9 +135,9 @@ namespace bae_trader.Commands
                 Console.WriteLine(investment.Symbol + "x" + quantity + " price: $"+ investment.Quote.BidPrice);
                 try
                 {
-                    var order = await alpacaTradingClient.PostOrderAsync(newOrderRequest);
+                    //var order = await _environment.alpacaTradingClient.PostOrderAsync(newOrderRequest);
 
-                    Console.WriteLine(order.OrderStatus);
+                    //Console.WriteLine(order.OrderStatus);
                 }
                 catch(Exception ex)
                 {
