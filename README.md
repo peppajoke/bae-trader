@@ -18,6 +18,8 @@ here: https://github.com/peppajoke/bae-trader/blob/master/Configuration/AlpacaCr
 The autoinvest command will wake up and make trades every 5 minutes in the environment specified.
 
 autoinvest optional arguments:
--c chaos mode. Adds some randomness to your investment strategy so that it's diverse between runs
--b=100 budget=100, lets you specify how much money to invest at most
--real invests in the real world. By default, bae-trader will run simulations against a "paper" stock environment
+`-c chaos mode. Adds some randomness to your investment strategy so that it's diverse between runs`
+
+`-b=100 budget=100, lets you specify how much money to invest at most`
+
+`-real invests in the real world. By default, bae-trader will run simulations against a "paper" stock environment`
