@@ -9,11 +9,11 @@ namespace bae_trader.Commands
 {
     public class Sell : BaseCommand
     {
-        public Sell(AlpacaEnvironment environment = null)
+        public Sell(AlpacaEnvironment environment)
         {
-            _environment = environment ?? new AlpacaEnvironment();
+            _environment = environment;
         }
-        private AlpacaEnvironment _environment = new AlpacaEnvironment();
+        private AlpacaEnvironment _environment;
 
         public override string Description()
         {
@@ -22,19 +22,6 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            // default to a paper environment for safety
-            _environment.SetEnvironment(true);
-
-            foreach(var arg in arguments)
-            {
-                if (arg == "-real")
-                {
-                    // Trade in the real world.
-                    _environment.SetEnvironment(false);
-                }
-
-            }
-
             var positions = await _environment.alpacaTradingClient.ListPositionsAsync();
             
             Console.WriteLine("Current positions...");
@@ -64,15 +51,17 @@ namespace bae_trader.Commands
 
             var unitsToSell = Decimal.ToInt64(currentPosition.IntegerQuantity * (percentToSell*100));
 
-            if (unitsToSell > 0)
+            if (unitsToSell > 0 && percentIncrease > 5)
             {
                 var newOrderRequest = new NewOrderRequest(
                     currentPosition.Symbol,
                     unitsToSell,
                     OrderSide.Buy,
                     OrderType.Market,
-                    TimeInForce.Gtc
+                    TimeInForce.Ioc
                 );
+
+                newOrderRequest.LimitPrice = currentPosition.MarketValue;
 
                 // SELL STONKS!!
                 _environment.alpacaTradingClient.PostOrderAsync(

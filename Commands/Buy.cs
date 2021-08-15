@@ -12,43 +12,28 @@ namespace bae_trader.Commands
 {
     public class Buy : BaseCommand
     {
-        public Buy(AlpacaEnvironment environment = null)
+        public Buy(AlpacaEnvironment environment, BuyConfig config)
         {
-            _environment = environment ?? new AlpacaEnvironment();
+            _environment = environment;
+            _config = config;
         }
         public override string Description()
         {
             return "Buys stocks. Arguments -b=100 budget $100, -real trade stocks in the real world, not in a paper environment, -m=20 make a maximum of 20 distinct investments";
         }
 
-        private const int MAX_INVESTMENTS = 20;
-
-        private const int SPENDING_BUDGET = 100;
-
         private AlpacaEnvironment _environment = new AlpacaEnvironment();
+        private BuyConfig _config;
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            var budget = SPENDING_BUDGET;
-            var maxTotalInvestments = MAX_INVESTMENTS;
-            var chaosMode = false;
-            var usePaperEnvironment = true;
-
-            // default to a paper environment for safety
-            _environment.SetEnvironment(true);
+            var chaosMode = _config.AddRandomVarianceInPurchaseDecisions;
 
             foreach(var arg in arguments)
             {
-                if (arg == "-real")
+                if (arg.Contains("-b="))
                 {
-                    // Trade in the real world.
-                    _environment.SetEnvironment(false);
-
-                    usePaperEnvironment = false;
-                }
-                else if (arg.Contains("-b="))
-                {
-                    budget = Int32.Parse(arg.Split("=")[1]);
+                    _config.BuyBudgetDollarsPerRun = Int32.Parse(arg.Split("=")[1]);
                 }
                 else if (arg.Contains("-c"))
                 {
@@ -62,15 +47,12 @@ namespace bae_trader.Commands
             var snapshotsBySymbol = new Dictionary<string, ISnapshot>();
 
             Console.WriteLine("Buying stocks with the following settings.");
-            Console.WriteLine("Budget: $" + budget);
-            Console.WriteLine("Maximum total investment count: " + maxTotalInvestments);
+            Console.WriteLine("Budget: $" + _config.BuyBudgetDollarsPerRun);
+            Console.WriteLine("Maximum total investment count: " + _config.MaximumInvestmentCountPerRun);
             if (chaosMode)
             {
                 Console.WriteLine("Chaos mode is enabled. Random price variance will occur in your investment strategy.");
             }
-            Console.WriteLine( 
-                usePaperEnvironment ? "This is a paper environment test. Stocks will not be purchased in the real world." 
-                : "This is a real transaction. Stocks will be purchased in the real world.");
 
             // get all market data
             foreach (var symbols in allSymbols.Batch(1000))
@@ -82,7 +64,7 @@ namespace bae_trader.Commands
             var viableSymbolsForPurchase = new Dictionary<string, ISnapshot>();
 
             // figure out what min/max dollar values should be for the investment
-            var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)SPENDING_BUDGET));
+            var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)_config.BuyBudgetDollarsPerRun));
 
             if (chaosMode)
             {
@@ -111,14 +93,14 @@ namespace bae_trader.Commands
             }
 
             var sortedSymbols = viableSymbolsForPurchase.Values.OrderBy(x => x.Quote.BidPrice).ToList();
-            SubmitBuyOrders(sortedSymbols, budget);
+            SubmitBuyOrders(sortedSymbols, _config.BuyBudgetDollarsPerRun);
             return true;
         }
 
         private async void SubmitBuyOrders(List<ISnapshot> snapshots, int budget)
         {
             // using max investments, take top N snapshots
-            var investments = snapshots.Take(MAX_INVESTMENTS);
+            var investments = snapshots.Take(_config.MaximumInvestmentCountPerRun);
 
             var budgetPerSymbol = budget / investments.Count();
 
@@ -133,15 +115,16 @@ namespace bae_trader.Commands
                     investment.Symbol,
                     quantity,
                     OrderSide.Buy,
-                    OrderType.Market,
-                    TimeInForce.Gtc
+                    OrderType.Limit,
+                    TimeInForce.Ioc
                 );
+                // Only buy if you can get a 10% off or better deal
+                newOrderRequest.LimitPrice = investment.Quote.BidPrice * .9M;
                 Console.WriteLine(investment.Symbol + "x" + quantity + " price: $"+ investment.Quote.BidPrice);
                 try
                 {
-                    //var order = await _environment.alpacaTradingClient.PostOrderAsync(newOrderRequest);
-
-                    //Console.WriteLine(order.OrderStatus);
+                    var order = await _environment.alpacaTradingClient.PostOrderAsync(newOrderRequest);
+                    Console.WriteLine(order.OrderStatus);
                 }
                 catch(Exception ex)
                 {

@@ -13,11 +13,12 @@ namespace bae_trader.Commands
         private Buy buyer;
         private Sell seller;
 
-        private AlpacaEnvironment _environment = new AlpacaEnvironment();
-        public AutoInvest()
+        private AlpacaEnvironment _environment;
+        public AutoInvest(AlpacaEnvironment environment, Buy buy, Sell sell)
         {
-            buyer = new Buy(_environment);
-            seller = new Sell(_environment);
+            _environment = environment;
+            buyer = buy;
+            seller = sell;
         }
         public override string Description()
         {
@@ -26,20 +27,9 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-             // default to a paper environment for safety
-            _environment.SetEnvironment(true);
 
             Console.WriteLine("Bae-trader: I am awake.");
-            foreach(var arg in arguments)
-            {
-                if (arg == "-real")
-                {
-                    // Trade in the real world.
-                    _environment.SetEnvironment(false);
-
-                    Console.WriteLine("Bae-trader: Autoinvesting in the REAL MARKET...");
-                }
-            }
+         
             // todo: Polling frequency as an arg
             while(true)
             {

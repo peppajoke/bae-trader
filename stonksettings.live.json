@@ -1,0 +1,19 @@
+{
+    "AlpacaCredentials": 
+    {
+        "ClientId": "",
+        "SecretId": ""
+    },
+    "Buy": 
+    {
+        "MaximumInvestmentCountPerRun": 20,
+        "BuyBudgetDollarsPerRun": 200,
+        "ApprovedSymbolsForPurchase": [],
+        "AddRandomVarianceInPurchaseDecisions": true
+    },
+    "Sell":
+    {
+        "ProfitThresholdPercent": 5,
+        "ApprovedSymbolsForSale": []
+    }
+}

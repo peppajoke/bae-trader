@@ -12,20 +12,10 @@ namespace bae_trader.Configuration
 
         public IAlpacaDataStreamingClient alpacaDataStreamingClient;
 
-        public void SetEnvironment(bool usePaperEnvironment)
+        public void SetEnvironment(bool usePaperEnvironment, AlpacaCredentials credentials)
         {
-            SecretKey key;
-            IEnvironment env;
-            if (usePaperEnvironment)
-            {
-                key = new SecretKey(AlpacaCredentials.PaperClientID, AlpacaCredentials.PaperClientSecret);
-                env = Environments.Paper;
-            }
-            else
-            {
-                key = new SecretKey(AlpacaCredentials.LiveClientID, AlpacaCredentials.LiveClientSecret);
-                env = Environments.Live;
-            }
+            var env = usePaperEnvironment ? Environments.Paper : Environments.Live;
+            var key = new SecretKey(credentials.ClientId, credentials.SecretId);
             alpacaTradingClient = env.GetAlpacaTradingClient(key);
             alpacaDataClient = env.GetAlpacaDataClient(key);
             alpacaStreamingClient = env.GetAlpacaStreamingClient(key);
