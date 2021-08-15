@@ -10,7 +10,7 @@ namespace bae_trader
     {
         static async Task Main(string[] args)
         {
-            var commands = new List<BaseCommand>() { new Buy() };
+            var commands = new List<BaseCommand>() { new Buy(), new Sell(), new AutoInvest()};
             var commander = new Commander();
             await commander.AddCommands(commands);
             Console.WriteLine("I'm ready to go, what shall we do?");

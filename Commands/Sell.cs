@@ -26,7 +26,9 @@ namespace bae_trader.Commands
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
             
-
+            // get all stonks we have currently
+            // calculate % return for selling them
+            // make a call for selling them
             return true;
         }
 

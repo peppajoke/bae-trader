@@ -14,11 +14,12 @@ namespace bae_trader.Commands
     {
         public override string Description()
         {
-            throw new System.NotImplementedException();
+            return "Buys stocks. Arguments -b=100 budget $100, -real trade stocks in the real world, not in a paper environment, -m=20 make a maximum of 20 distinct investments";
         }
 
         private const int MAX_INVESTMENTS = 20;
-        private const decimal SPENDING_BUDGET = 200000;
+
+        private const decimal SPENDING_BUDGET = 100;
 
         private IAlpacaDataClient alpacaDataClient;
 
@@ -32,7 +33,6 @@ namespace bae_trader.Commands
 
         public Buy()
         {
-
             SecretKey key;
             IEnvironment env;
             if (UsePaperEnvironment)
@@ -53,12 +53,41 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
+            var budget = SPENDING_BUDGET;
+            var maxTotalInvestments = MAX_INVESTMENTS;
+            var chaosMode = false;
+
+            foreach(var arg in arguments)
+            {
+                if (arg == "-real")
+                {
+                    // swap environments
+                }
+                else if (arg.Contains("-b="))
+                {
+                    budget = Int32.Parse(arg.Split("=")[1]);
+                }
+                else if (arg.Contains("-c"))
+                {
+                    chaosMode = true;
+                }
+
+            }
 
             var allSymbols = Nasdaq.AllSymbols.Where(x => x.All(Char.IsLetterOrDigit)); // cleaning weird nasdaq values
             
             var snapshotsBySymbol = new Dictionary<string, ISnapshot>();
 
-            Console.WriteLine("Fetching NASDAQ prices...");
+            Console.WriteLine("Buying stocks with the following settings.");
+            Console.WriteLine("Budget: $" + budget);
+            Console.WriteLine("Maximum total investment count: " + maxTotalInvestments);
+            if (chaosMode)
+            {
+                Console.WriteLine("Chaos mode is enabled. Random price variance will occur in your investment strategy.");
+            }
+            Console.WriteLine( 
+                UsePaperEnvironment ? "This is a paper environment test. Stocks will not be purchased in the real world." 
+                : "This is a real transaction. Stocks will be purchased in the real world.");
 
             // get all market data
             foreach (var symbols in allSymbols.Batch(1000))
@@ -67,12 +96,17 @@ namespace bae_trader.Commands
                 newSnapshots.ToList().ForEach(x => snapshotsBySymbol.Add(x.Key, x.Value));
             }
 
-            Console.WriteLine("Done!");
-
             var viableSymbolsForPurchase = new Dictionary<string, ISnapshot>();
 
             // figure out what min/max dollar values should be for the investment
             var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)SPENDING_BUDGET));
+
+            if (chaosMode)
+            {
+                maxPricePerShare *= new Random().Next(2, 30);
+                maxPricePerShare /= 10;
+            }
+
             var minPricePerShare = maxPricePerShare / 2;
 
             // Remove bad fits
