@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using bae_trader.Commands;
 using bae_trader.Configuration;
@@ -27,11 +28,13 @@ namespace bae_trader
                     builder = new ConfigurationBuilder()
                         .SetBasePath(Directory.GetCurrentDirectory())
                         .AddJsonFile("stonksettings.paper.json", optional: false);
+                    Console.WriteLine("Running in a paper environment.");
                     break;
                 case "live":
                     builder = new ConfigurationBuilder()
                         .SetBasePath(Directory.GetCurrentDirectory())
                         .AddJsonFile("stonksettings.live.json", optional: false);
+                    Console.WriteLine("Running a LIVE environment.");
                     break;
                 default:
                     Console.WriteLine("First argument is invalid. Must be paper or live to specify trading environment.");
@@ -43,6 +46,18 @@ namespace bae_trader
             var buyConfig = config.GetSection("Buy").Get<BuyConfig>();
             //var sellConfig = config.GetSection("Sell").Get<MyFirstClass>();
             var alpacaCredentials = config.GetSection("AlpacaCredentials").Get<AlpacaCredentials>();
+
+            if (String.IsNullOrEmpty(alpacaCredentials.ClientId))
+            {
+                Console.WriteLine("No client id found! Did you add one in your stonksettings json file? Exiting...");
+                return;
+            }
+
+            if (String.IsNullOrEmpty(alpacaCredentials.SecretId))
+            {
+                Console.WriteLine("No secret id found! Did you add one in your stonksettings json file? Exiting...");
+                return;
+            }
 
             var environment = new AlpacaEnvironment();
             environment.SetEnvironment(usePaperEnvironment, alpacaCredentials);
@@ -58,7 +73,8 @@ namespace bae_trader
 
             if (args.Length > 1)
             {
-                var startingCommand = args[1].Replace("\"", "");
+                var remainingCommands = args.Skip(1).ToArray();
+                var startingCommand = String.Join(' ', remainingCommands);
                 Console.WriteLine("Autostarting with command: " + startingCommand);
                 await commander.SendCommandInput(startingCommand);
             }
