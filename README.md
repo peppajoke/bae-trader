@@ -16,7 +16,9 @@ here: https://github.com/peppajoke/bae-trader/blob/master/stonksettings.paper.js
 `dotnet run live` to run the CLI in a real stock trading environment
 
 # Bae-trader commands
+Once you run bae-trader, you can execute several commands for interacting with your target market.
 
+## Autoinvest
 `autoinvest` or `auto`
 
 The autoinvest command will wake up and make trades every 5 minutes in the environment specified.
