@@ -21,6 +21,6 @@ autoinvest optional arguments:
 
 `-c chaos mode. Adds some randomness to your investment strategy so that it's diverse between runs`
 
-`-b=100 budget=100, lets you specify how much money to invest at most`
+`-b=100 budget=100, lets you specify how much money to invest at most, in dollars`
 
 `-real invests in the real world. By default, bae-trader will run simulations against a "paper" stock environment`
