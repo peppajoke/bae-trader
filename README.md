@@ -3,7 +3,7 @@ Stockbot for getting rich
 
 # How to get started
 1. Create a free account on alpaca: https://app.alpaca.markets/
-2. Set up a paper (simulation environment) and a live account.
+2. Set up a paper (simulation environment) and/or a live account.
 3. Clone this repository on your local machine.
 3. Generate API keys for each environment on the alpaca website, and insert them into your local alpaca configurations within bae-trader
 here: https://github.com/peppajoke/bae-trader/blob/master/stonksettings.paper.json and here https://github.com/peppajoke/bae-trader/blob/master/stonksettings.live.json
