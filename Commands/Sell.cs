@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Alpaca.Markets;
@@ -25,7 +26,13 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
+            var positions = await alpacaTradingClient.ListPositionsAsync();
             
+            Console.WriteLine("Current positions...");
+            foreach (var position in positions)
+            {
+                Console.WriteLine(position.ToString());
+            }
             // get all stonks we have currently
             // calculate % return for selling them
             // make a call for selling them

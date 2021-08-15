@@ -10,9 +10,11 @@ namespace bae_trader.Commands
     {
 
         private Buy buyer;
+        private Sell seller;
         public AutoInvest()
         {
             buyer = new Buy();
+            seller = new Sell();
         }
         public override string Description()
         {
@@ -25,9 +27,12 @@ namespace bae_trader.Commands
             while(true)
             {
                 Console.WriteLine("I am awake.");
-                // Sell?
+
+                // Sell
+                await seller.Execute(arguments);
+
                 Console.WriteLine("Buying stonks...");
-                buyer.Execute(arguments);
+                // buyer.Execute(arguments);
                 Console.WriteLine("Sleeping for 5 minutes...");
                 Thread.Sleep(300000);
             }

@@ -29,13 +29,11 @@ namespace bae_trader.Commands
 
         private IAlpacaDataStreamingClient alpacaDataStreamingClient;
 
-        private bool UsePaperEnvironment = true; // flip this to paper when you don't want REAL trades
-
-        public Buy()
+        private void SetEnvironment(bool usePaperEnvironment)
         {
             SecretKey key;
             IEnvironment env;
-            if (UsePaperEnvironment)
+            if (usePaperEnvironment)
             {
                 key = new SecretKey(AlpacaCredentials.PaperClientID, AlpacaCredentials.PaperClientSecret);
                 env = Environments.Paper;
@@ -45,7 +43,6 @@ namespace bae_trader.Commands
                 key = new SecretKey(AlpacaCredentials.LiveClientID, AlpacaCredentials.LiveClientSecret);
                 env = Environments.Live;
             }
-
             alpacaTradingClient = env.GetAlpacaTradingClient(key);
             alpacaDataClient = env.GetAlpacaDataClient(key);
             alpacaStreamingClient = env.GetAlpacaStreamingClient(key);
@@ -56,12 +53,19 @@ namespace bae_trader.Commands
             var budget = SPENDING_BUDGET;
             var maxTotalInvestments = MAX_INVESTMENTS;
             var chaosMode = false;
+            var usePaperEnvironment = true;
+
+            // default to a paper environment for safety
+            SetEnvironment(true);
 
             foreach(var arg in arguments)
             {
                 if (arg == "-real")
                 {
-                    // swap environments
+                    // Trade in the real world.
+                    SetEnvironment(false);
+
+                    usePaperEnvironment = false;
                 }
                 else if (arg.Contains("-b="))
                 {
@@ -86,7 +90,7 @@ namespace bae_trader.Commands
                 Console.WriteLine("Chaos mode is enabled. Random price variance will occur in your investment strategy.");
             }
             Console.WriteLine( 
-                UsePaperEnvironment ? "This is a paper environment test. Stocks will not be purchased in the real world." 
+                usePaperEnvironment ? "This is a paper environment test. Stocks will not be purchased in the real world." 
                 : "This is a real transaction. Stocks will be purchased in the real world.");
 
             // get all market data
