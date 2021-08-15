@@ -18,6 +18,7 @@ namespace bae_trader
             if (args.Length == 0)
             {
                 Console.WriteLine("You must specify paper or live as the trading environment. Example: dotnet run -- paper");
+                return;
             }
 
             switch(args[0])
