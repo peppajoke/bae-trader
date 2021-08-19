@@ -4,9 +4,11 @@ namespace bae_trader.Configuration
 {
     public class BuyConfig
     {
-        public int MaximumInvestmentCountPerRun;
-        public int BuyBudgetDollarsPerRun;
-        public IEnumerable<string> ApprovedSymbolsForPurchase;
-        public bool AddRandomVarianceInPurchaseDecisions;
+        public int MaximumInvestmentCountPerRun { get; set; }
+        public int BuyBudgetDollarsPerRun { get; set; }
+        public IEnumerable<string> ApprovedSymbolsForPurchase { get; set; }
+        public bool AddRandomVarianceInPurchaseDecisions { get; set; }
+
+        public int MaxBuyWinners { get; set; }
     }
 }

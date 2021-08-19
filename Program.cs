@@ -44,7 +44,7 @@ namespace bae_trader
             IConfiguration config = builder.Build();
 
             var buyConfig = config.GetSection("Buy").Get<BuyConfig>();
-            //var sellConfig = config.GetSection("Sell").Get<MyFirstClass>();
+            var sellConfig = config.GetSection("Sell").Get<SellConfig>();
             var alpacaCredentials = config.GetSection("AlpacaCredentials").Get<AlpacaCredentials>();
 
             if (String.IsNullOrEmpty(alpacaCredentials.ClientId))
@@ -62,14 +62,16 @@ namespace bae_trader
             var environment = new AlpacaEnvironment();
             environment.SetEnvironment(usePaperEnvironment, alpacaCredentials);
 
-            var buyer = new Buy(environment, new BuyConfig());
-            var seller = new Sell(environment);
+            Console.WriteLine("max buys: " + buyConfig.MaxBuyWinners);
+
+            var buyer = new Buy(environment, buyConfig);
+            var seller = new Sell(environment, sellConfig);
             var auto = new AutoInvest(environment, buyer, seller);
 
             var commands = new List<BaseCommand>() { buyer, seller, auto};
             var commander = new Commander();
             await commander.AddCommands(commands);
-            Console.WriteLine("I'm ready to go, what shall we do?");
+            Console.WriteLine("Bae-trader: What'll it be? (commands: autoinvest/auto, buy, sell)");
 
             if (args.Length > 1)
             {

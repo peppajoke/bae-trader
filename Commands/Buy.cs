@@ -27,6 +27,11 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
+            if (_config.BuyBudgetDollarsPerRun < 1)
+            {
+                Console.WriteLine("No budget to buy stocks with!");
+                return true;
+            }
             var chaosMode = _config.AddRandomVarianceInPurchaseDecisions;
 
             foreach(var arg in arguments)
@@ -39,7 +44,6 @@ namespace bae_trader.Commands
                 {
                     chaosMode = true;
                 }
-
             }
 
             var allSymbols = Nasdaq.AllSymbols.Where(x => x.All(Char.IsLetterOrDigit)); // cleaning weird nasdaq values
@@ -55,7 +59,7 @@ namespace bae_trader.Commands
             }
 
             // get all market data
-            foreach (var symbols in allSymbols.Batch(1000))
+            foreach (var symbols in allSymbols.Batch(500))
             {
                 var newSnapshots = await _environment.alpacaDataClient.GetSnapshotsAsync(symbols);
                 newSnapshots.ToList().ForEach(x => snapshotsBySymbol.Add(x.Key, x.Value));
@@ -83,7 +87,7 @@ namespace bae_trader.Commands
                     && snapshotBySymbol.Value.Quote.BidPrice <= maxPricePerShare)
                     {
                         viableSymbolsForPurchase.Add(snapshotBySymbol.Key, snapshotBySymbol.Value);
-                        Console.WriteLine(snapshotBySymbol.Key + ": " + snapshotBySymbol.Value.Quote.BidPrice);
+                        //Console.WriteLine(snapshotBySymbol.Key + ": " + snapshotBySymbol.Value.Quote.BidPrice);
                     }
                 }
                 catch(Exception ex)
@@ -92,22 +96,65 @@ namespace bae_trader.Commands
                 }
             }
 
+            Console.WriteLine("Done!");
+
             var sortedSymbols = viableSymbolsForPurchase.Values.OrderBy(x => x.Quote.BidPrice).ToList();
-            SubmitBuyOrders(sortedSymbols, _config.BuyBudgetDollarsPerRun);
+
+            SubmitBuyOrders(PickWinners(sortedSymbols), _config.BuyBudgetDollarsPerRun);
             return true;
         }
 
-        private async void SubmitBuyOrders(List<ISnapshot> snapshots, int budget)
+        private List<ISnapshot> PickWinners(List<ISnapshot> candidates)
         {
-            // using max investments, take top N snapshots
-            var investments = snapshots.Take(_config.MaximumInvestmentCountPerRun);
 
+            var scoredInvestments = new List<InvestmentCandidate>();
+
+            foreach (var candidate in candidates)
+            {
+                var score = Score(candidate);
+                if (score < .2M)
+                {
+                    continue;
+                }
+                scoredInvestments.Add(new InvestmentCandidate() { Score = score, Snapshot = candidate});
+            }
+
+            var orderedInvestments = scoredInvestments.OrderBy(x => x.Score).ToList();
+
+            var winners = new List<ISnapshot>();
+           
+            for(var i=0; i < _config.MaxBuyWinners; i++)
+            {
+                winners.Add(orderedInvestments[i].Snapshot);
+            }
+            
+            return winners;
+        }
+
+        private decimal Score(ISnapshot candidateInvestment)
+        {
+            // Value is above low
+            // Bid price is MUCH lower than High
+            var score = (candidateInvestment.CurrentDailyBar.High - candidateInvestment.Quote.BidPrice) / candidateInvestment.Quote.BidPrice;
+
+            if (candidateInvestment.Quote.BidPrice > candidateInvestment.CurrentDailyBar.Low)
+            {
+                // if we're not at the floor, double the score. You know the old rhyme.
+                score *= 2;
+            }
+
+            return score;
+        }
+
+        private async void SubmitBuyOrders(List<ISnapshot> investments, int budget)
+        {
             var budgetPerSymbol = budget / investments.Count();
 
             var orderRequests = new List<NewOrderRequest>();
 
             Console.WriteLine("Sending buy orders...");
             
+            // todo add a cooldown for symbol buying
             foreach (var investment in investments)
             {
                 var quantity = (int)(Decimal.Round(budgetPerSymbol / investment.Quote.BidPrice, 0) - 1);
@@ -115,11 +162,9 @@ namespace bae_trader.Commands
                     investment.Symbol,
                     quantity,
                     OrderSide.Buy,
-                    OrderType.Limit,
+                    OrderType.Market,
                     TimeInForce.Ioc
                 );
-                // Only buy if you can get a 10% off or better deal
-                newOrderRequest.LimitPrice = investment.Quote.BidPrice * .9M;
                 Console.WriteLine(investment.Symbol + "x" + quantity + " price: $"+ investment.Quote.BidPrice);
                 try
                 {
@@ -137,5 +182,11 @@ namespace bae_trader.Commands
         {
             return new List<string>() { "buy" };
         }
+    }
+
+    struct InvestmentCandidate
+    {
+        public ISnapshot Snapshot;
+        public decimal Score;
     }
 }

@@ -39,9 +39,11 @@ namespace bae_trader.Commands
                     Console.WriteLine("Bae-trader: The market is not open right now.");
                     var timeUntilMarketOpen = clock.NextOpenUtc - clock.TimestampUtc;
                     Console.WriteLine("Bae-trader: Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
+                    
+                    Console.WriteLine("Bae-trader: The market opens at " + clock.NextOpenUtc.AddHours(-4) + " Eastern standard time");
+                    await Task.Delay(3600000);
 
-                    Console.WriteLine("Bae-trader: The market opens at " + clock.NextOpenUtc.Date.AddMinutes(30).AddHours(9) + " EST");
-                    await Task.Delay(Convert.ToInt32(timeUntilMarketOpen.TotalMilliseconds));
+                    clock = await _environment.alpacaTradingClient.GetClockAsync();
                 }
                 Console.WriteLine("The market is open, let's get to work...");
 
@@ -51,9 +53,9 @@ namespace bae_trader.Commands
                 Console.WriteLine("Buying stonks...");
                 
                 // todo, figure out if we can/should await this buy call
-                buyer.Execute(arguments);
-                Console.WriteLine("Sleeping for 5 minutes...");
-                Thread.Sleep(300000);
+                await buyer.Execute(arguments);
+                Console.WriteLine("Sleeping for 1 minute...");
+                await Task.Delay(60000);
                 clock = await _environment.alpacaTradingClient.GetClockAsync();
             }
         }
