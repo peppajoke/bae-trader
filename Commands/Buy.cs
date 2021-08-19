@@ -12,6 +12,8 @@ namespace bae_trader.Commands
 {
     public class Buy : BaseCommand
     {
+
+        private HashSet<string> SymbolsOnCooldown = new HashSet<string>();
         public Buy(AlpacaEnvironment environment, BuyConfig config)
         {
             _environment = environment;
@@ -27,6 +29,7 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
+            
             if (_config.BuyBudgetDollarsPerRun < 1)
             {
                 Console.WriteLine("No budget to buy stocks with!");
@@ -104,6 +107,22 @@ namespace bae_trader.Commands
             return true;
         }
 
+        private bool IsOnCooldown(string symbol)
+        {
+            if (!SymbolsOnCooldown.Contains(symbol))
+            {
+                SymbolsOnCooldown.Add(symbol);
+                return false;
+            }
+
+            if (new Random().Next(1,50) == 1)
+            {
+                SymbolsOnCooldown.Remove(symbol);
+            }
+            Console.WriteLine("Blocking purchase of " + symbol + ", too recently purchased.");
+            return true;
+        }
+
         private List<ISnapshot> PickWinners(List<ISnapshot> candidates)
         {
 
@@ -157,6 +176,10 @@ namespace bae_trader.Commands
             // todo add a cooldown for symbol buying
             foreach (var investment in investments)
             {
+                if (IsOnCooldown(investment.Symbol))
+                {
+                    continue;
+                }
                 var quantity = (int)(Decimal.Round(budgetPerSymbol / investment.Quote.BidPrice, 0) - 1);
                 var newOrderRequest = new NewOrderRequest(
                     investment.Symbol,

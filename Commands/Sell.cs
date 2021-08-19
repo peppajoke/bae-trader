@@ -45,7 +45,9 @@ namespace bae_trader.Commands
 
         private async void MakeSaleDecision(IPosition currentPosition)
         {
-            var profitPercent = currentPosition.AssetCurrentPrice / currentPosition.CostBasis;
+            var profitPercent = (((currentPosition.AssetCurrentPrice * currentPosition.IntegerQuantity) / currentPosition.CostBasis) * 100) - 100;
+            Console.WriteLine("price: " + currentPosition.AssetCurrentPrice * currentPosition.IntegerQuantity);
+            Console.WriteLine("cost: " + currentPosition.CostBasis);
             if (profitPercent <= 0)
             {
                 // this sale would be a loss, so don't do it.
@@ -61,7 +63,7 @@ namespace bae_trader.Commands
             Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
 
             // don't sell more than half your assets
-            var percentToSell = Math.Min(80, percentIncrease);
+            var percentToSell = Math.Max(20, Math.Min(80, percentIncrease));
 
             var unitsToSell = Decimal.ToInt64(currentPosition.IntegerQuantity * (percentToSell/100));
 
