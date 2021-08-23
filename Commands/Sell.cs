@@ -18,6 +18,8 @@ namespace bae_trader.Commands
         private AlpacaEnvironment _environment;
         private SellConfig _sellConfig;
 
+        private HashSet<string> SymbolsOnCooldown = new HashSet<string>();
+
         public override string Description()
         {
             throw new System.NotImplementedException();
@@ -51,19 +53,18 @@ namespace bae_trader.Commands
             if (profitPercent <= 0)
             {
                 // this sale would be a loss, so don't do it.
-
-            Console.WriteLine(currentPosition.Symbol + " isn't worth selling. (no profit) " + profitPercent);
+                Console.WriteLine(currentPosition.Symbol + " isn't worth selling. (no profit) " + profitPercent);
                 return;
             }
 
-            var percentIncrease = profitPercent * 100;
+            var percentIncrease = profitPercent * 100 * 2;
 
             Console.WriteLine("Analyzing position " + currentPosition.Symbol + "...");
             Console.WriteLine("Change percent: " + profitPercent);
             Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
 
             // don't sell more than half your assets
-            var percentToSell = Math.Max(20, Math.Min(80, percentIncrease));
+            var percentToSell = Math.Max(20, Math.Min(100, percentIncrease));
 
             var unitsToSell = Decimal.ToInt64(currentPosition.IntegerQuantity * (percentToSell/100));
 
@@ -82,6 +83,11 @@ namespace bae_trader.Commands
                 // SELL STONKS!!
                 try
                 {
+                    if (IsOnCooldown(currentPosition.Symbol))
+                    {
+                        Console.WriteLine("Skipping sale of " + currentPosition.Symbol + ", it's on cooldown.");
+                        return;
+                    }
                     var order = await _environment.alpacaTradingClient.PostOrderAsync(
                         newOrderRequest
                     );
@@ -101,6 +107,22 @@ namespace bae_trader.Commands
         public override IEnumerable<string> MatchingBaseCommands()
         {
             return new List<string> () { "sell" };
+        }
+
+        private bool IsOnCooldown(string symbol)
+        {
+            if (!SymbolsOnCooldown.Contains(symbol))
+            {
+                SymbolsOnCooldown.Add(symbol);
+                return false;
+            }
+
+            if (new Random().Next(1,50) == 1)
+            {
+                SymbolsOnCooldown.Remove(symbol);
+            }
+            Console.WriteLine("Blocking purchase of " + symbol + ", too recently purchased.");
+            return true;
         }
     }
 }

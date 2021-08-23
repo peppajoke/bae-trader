@@ -33,30 +33,37 @@ namespace bae_trader.Commands
             // todo: Polling frequency as an arg
             while(true)
             {
-                var clock = await _environment.alpacaTradingClient.GetClockAsync();
-                while (!clock.IsOpen)
+                try
                 {
-                    Console.WriteLine("Bae-trader: The market is not open right now.");
-                    var timeUntilMarketOpen = clock.NextOpenUtc - clock.TimestampUtc;
-                    Console.WriteLine("Bae-trader: Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
-                    
-                    Console.WriteLine("Bae-trader: The market opens at " + clock.NextOpenUtc.AddHours(-4) + " Eastern standard time");
-                    await Task.Delay(3600000);
+                    var clock = await _environment.alpacaTradingClient.GetClockAsync();
+                    while (clock.IsOpen)
+                    {
+                        Console.WriteLine("Bae-trader: The market is not open right now.");
+                        var timeUntilMarketOpen = clock.NextOpenUtc - clock.TimestampUtc;
+                        Console.WriteLine("Bae-trader: Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
+                        
+                        Console.WriteLine("Bae-trader: The market opens at " + clock.NextOpenUtc.AddHours(-4) + " Eastern standard time");
+                        await Task.Delay(3600000);
 
+                        clock = await _environment.alpacaTradingClient.GetClockAsync();
+                    }
+                    Console.WriteLine("The market is open, let's get to work...");
+
+                    // Sell
+                    await seller.Execute(arguments);
+
+                    Console.WriteLine("Buying stonks...");
+                    
+                    // todo, figure out if we can/should await this buy call
+                    await buyer.Execute(arguments);
+                    Console.WriteLine("Sleeping for 1 minute...");
+                    await Task.Delay(60000);
                     clock = await _environment.alpacaTradingClient.GetClockAsync();
                 }
-                Console.WriteLine("The market is open, let's get to work...");
-
-                // Sell
-                await seller.Execute(arguments);
-
-                Console.WriteLine("Buying stonks...");
-                
-                // todo, figure out if we can/should await this buy call
-                await buyer.Execute(arguments);
-                Console.WriteLine("Sleeping for 1 minute...");
-                await Task.Delay(60000);
-                clock = await _environment.alpacaTradingClient.GetClockAsync();
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
         }
 

@@ -35,6 +35,7 @@ namespace bae_trader
                         .SetBasePath(Directory.GetCurrentDirectory())
                         .AddJsonFile("stonksettings.live.json", optional: false);
                     Console.WriteLine("Running a LIVE environment.");
+                    usePaperEnvironment = false;
                     break;
                 default:
                     Console.WriteLine("First argument is invalid. Must be paper or live to specify trading environment.");
@@ -67,8 +68,9 @@ namespace bae_trader
             var buyer = new Buy(environment, buyConfig);
             var seller = new Sell(environment, sellConfig);
             var auto = new AutoInvest(environment, buyer, seller);
+            var testEnv = new TestEnv(environment);
 
-            var commands = new List<BaseCommand>() { buyer, seller, auto};
+            var commands = new List<BaseCommand>() { buyer, seller, auto, testEnv};
             var commander = new Commander();
             await commander.AddCommands(commands);
             Console.WriteLine("Bae-trader: What'll it be? (commands: autoinvest/auto, buy, sell)");

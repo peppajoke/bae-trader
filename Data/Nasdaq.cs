@@ -12,8 +12,6 @@ namespace bae_trader.Data
             "AACG",
             "AACIU",
             "AAIC",
-            "AAIC^B",
-            "AAIC^C",
             "AAIN",
             "AAL",
             "AAMC",

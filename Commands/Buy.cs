@@ -7,6 +7,7 @@ using System;
 using bae_trader.Data;
 using MoreLinq;
 using System.Linq;
+using bae_trader.InvestmentScoring;
 
 namespace bae_trader.Commands
 {
@@ -14,10 +15,12 @@ namespace bae_trader.Commands
     {
 
         private HashSet<string> SymbolsOnCooldown = new HashSet<string>();
-        public Buy(AlpacaEnvironment environment, BuyConfig config)
+        private readonly InvestmentScoringService _scoringService;
+        public Buy(AlpacaEnvironment environment, BuyConfig config, InvestmentScoringService scoringService = null)
         {
             _environment = environment;
             _config = config;
+            _scoringService = scoringService ?? new InvestmentScoringService();
         }
         public override string Description()
         {
@@ -27,34 +30,24 @@ namespace bae_trader.Commands
         private AlpacaEnvironment _environment = new AlpacaEnvironment();
         private BuyConfig _config;
 
+        private int DollarsToInvest;
+
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            
-            if (_config.BuyBudgetDollarsPerRun < 1)
+            var account = await _environment.alpacaTradingClient.GetAccountAsync();
+            DollarsToInvest = Math.Min(_config.BuyBudgetDollarsPerRun, (int)account.TradableCash);
+            if (DollarsToInvest < 1)
             {
                 Console.WriteLine("No budget to buy stocks with!");
                 return true;
             }
             var chaosMode = _config.AddRandomVarianceInPurchaseDecisions;
-
-            foreach(var arg in arguments)
-            {
-                if (arg.Contains("-b="))
-                {
-                    _config.BuyBudgetDollarsPerRun = Int32.Parse(arg.Split("=")[1]);
-                }
-                else if (arg.Contains("-c"))
-                {
-                    chaosMode = true;
-                }
-            }
-
             var allSymbols = Nasdaq.AllSymbols.Where(x => x.All(Char.IsLetterOrDigit)); // cleaning weird nasdaq values
             
             var snapshotsBySymbol = new Dictionary<string, ISnapshot>();
 
             Console.WriteLine("Buying stocks with the following settings.");
-            Console.WriteLine("Budget: $" + _config.BuyBudgetDollarsPerRun);
+            Console.WriteLine("Budget: $" + DollarsToInvest);
             Console.WriteLine("Maximum total investment count: " + _config.MaximumInvestmentCountPerRun);
             if (chaosMode)
             {
@@ -71,7 +64,7 @@ namespace bae_trader.Commands
             var viableSymbolsForPurchase = new Dictionary<string, ISnapshot>();
 
             // figure out what min/max dollar values should be for the investment
-            var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)_config.BuyBudgetDollarsPerRun));
+            var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)DollarsToInvest))*10;
 
             if (chaosMode)
             {
@@ -79,7 +72,7 @@ namespace bae_trader.Commands
                 maxPricePerShare /= 10;
             }
 
-            var minPricePerShare = maxPricePerShare / 2;
+            var minPricePerShare = Math.Max(maxPricePerShare / 2, 5);
 
             // Remove bad fits
             foreach (var snapshotBySymbol in snapshotsBySymbol) 
@@ -95,7 +88,7 @@ namespace bae_trader.Commands
                 }
                 catch(Exception ex)
                 {
-                    Console.WriteLine("failed to process " + snapshotBySymbol.Key);
+                    Console.WriteLine("failed to process " + snapshotBySymbol.Key + ": " + ex.Message);
                 }
             }
 
@@ -103,7 +96,7 @@ namespace bae_trader.Commands
 
             var sortedSymbols = viableSymbolsForPurchase.Values.OrderBy(x => x.Quote.BidPrice).ToList();
 
-            SubmitBuyOrders(PickWinners(sortedSymbols), _config.BuyBudgetDollarsPerRun);
+            SubmitBuyOrders(PickWinners(sortedSymbols), DollarsToInvest);
             return true;
         }
 
@@ -125,12 +118,11 @@ namespace bae_trader.Commands
 
         private List<ISnapshot> PickWinners(List<ISnapshot> candidates)
         {
-
             var scoredInvestments = new List<InvestmentCandidate>();
 
             foreach (var candidate in candidates)
             {
-                var score = Score(candidate);
+                var score = _scoringService.ScoreInvestment(candidate);
                 if (score < .2M)
                 {
                     continue;
@@ -148,21 +140,6 @@ namespace bae_trader.Commands
             }
             
             return winners;
-        }
-
-        private decimal Score(ISnapshot candidateInvestment)
-        {
-            // Value is above low
-            // Bid price is MUCH lower than High
-            var score = (candidateInvestment.CurrentDailyBar.High - candidateInvestment.Quote.BidPrice) / candidateInvestment.Quote.BidPrice;
-
-            if (candidateInvestment.Quote.BidPrice > candidateInvestment.CurrentDailyBar.Low)
-            {
-                // if we're not at the floor, double the score. You know the old rhyme.
-                score *= 2;
-            }
-
-            return score;
         }
 
         private async void SubmitBuyOrders(List<ISnapshot> investments, int budget)
