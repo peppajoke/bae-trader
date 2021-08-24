@@ -63,8 +63,6 @@ namespace bae_trader
             var environment = new AlpacaEnvironment();
             environment.SetEnvironment(usePaperEnvironment, alpacaCredentials);
 
-            Console.WriteLine("max buys: " + buyConfig.MaxBuyWinners);
-
             var buyer = new Buy(environment, buyConfig);
             var seller = new Sell(environment, sellConfig);
             var auto = new AutoInvest(environment, buyer, seller);

@@ -36,13 +36,13 @@ namespace bae_trader.Commands
                 try
                 {
                     var clock = await _environment.alpacaTradingClient.GetClockAsync();
-                    while (clock.IsOpen)
+                    while (!clock.IsOpen)
                     {
-                        Console.WriteLine("Bae-trader: The market is not open right now.");
+                        Console.WriteLine("The market is not open right now.");
                         var timeUntilMarketOpen = clock.NextOpenUtc - clock.TimestampUtc;
-                        Console.WriteLine("Bae-trader: Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
+                        Console.WriteLine("Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
                         
-                        Console.WriteLine("Bae-trader: The market opens at " + clock.NextOpenUtc.AddHours(-4) + " Eastern standard time");
+                        Console.WriteLine("The market opens at " + clock.NextOpenUtc.AddHours(-4) + " Eastern standard time");
                         await Task.Delay(3600000);
 
                         clock = await _environment.alpacaTradingClient.GetClockAsync();
@@ -51,18 +51,17 @@ namespace bae_trader.Commands
 
                     // Sell
                     await seller.Execute(arguments);
-
-                    Console.WriteLine("Buying stonks...");
                     
                     // todo, figure out if we can/should await this buy call
                     await buyer.Execute(arguments);
-                    Console.WriteLine("Sleeping for 1 minute...");
                     await Task.Delay(60000);
                     clock = await _environment.alpacaTradingClient.GetClockAsync();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
+                    await Task.Delay(60000);
                 }
             }
         }

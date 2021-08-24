@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Alpaca.Markets;
 
@@ -12,10 +13,21 @@ namespace bae_trader.InvestmentScoring
 
         public async Task<decimal> ScoreInvestment(ISnapshot investment)
         {
-            var volumeIncreaseSinceYesterday = investment.CurrentDailyBar.TradeCount - investment.PreviousDailyBar.TradeCount;
-            var percentTradeGrowth = (volumeIncreaseSinceYesterday / investment.PreviousDailyBar.TradeCount) * 100;
+            try
+            {
+                var volumeIncreaseSinceYesterday = investment.CurrentDailyBar.TradeCount - investment.PreviousDailyBar.TradeCount;
+                var percentTradeGrowth = (volumeIncreaseSinceYesterday / investment.PreviousDailyBar.TradeCount) * 100;
 
-            return percentTradeGrowth;
+                return percentTradeGrowth;
+            }
+            catch(DivideByZeroException ex)
+            {
+                return 0;
+            }
+            catch(NullReferenceException ex)
+            {
+                return 0;
+            }
         }
     }
 }

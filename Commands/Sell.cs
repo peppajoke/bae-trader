@@ -29,14 +29,12 @@ namespace bae_trader.Commands
         {
             var positions = await _environment.alpacaTradingClient.ListPositionsAsync();
             
-            Console.WriteLine("Current positions...");
             if (_sellConfig.ApprovedSymbolsForSale.Any())
             {   
                 positions = positions.Where(x => _sellConfig.ApprovedSymbolsForSale.Contains(x.Symbol)).ToList();
             }
             foreach (var position in positions)
             {
-                Console.WriteLine(position.Symbol);
                 MakeSaleDecision(position);
             }
             // get all stonks we have currently
@@ -48,20 +46,20 @@ namespace bae_trader.Commands
         private async void MakeSaleDecision(IPosition currentPosition)
         {
             var profitPercent = (((currentPosition.AssetCurrentPrice * currentPosition.IntegerQuantity) / currentPosition.CostBasis) * 100) - 100;
-            Console.WriteLine("price: " + currentPosition.AssetCurrentPrice * currentPosition.IntegerQuantity);
-            Console.WriteLine("cost: " + currentPosition.CostBasis);
+            // Console.WriteLine("price: " + currentPosition.AssetCurrentPrice * currentPosition.IntegerQuantity);
+            // Console.WriteLine("cost: " + currentPosition.CostBasis);
             if (profitPercent <= 0)
             {
                 // this sale would be a loss, so don't do it.
-                Console.WriteLine(currentPosition.Symbol + " isn't worth selling. (no profit) " + profitPercent);
+                // Console.WriteLine(currentPosition.Symbol + " isn't worth selling. (no profit) " + profitPercent);
                 return;
             }
 
             var percentIncrease = profitPercent * 100 * 2;
 
-            Console.WriteLine("Analyzing position " + currentPosition.Symbol + "...");
-            Console.WriteLine("Change percent: " + profitPercent);
-            Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
+            // Console.WriteLine("Analyzing position " + currentPosition.Symbol + "...");
+            // Console.WriteLine("Change percent: " + profitPercent);
+            // Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
 
             // don't sell more than half your assets
             var percentToSell = Math.Max(20, Math.Min(100, percentIncrease));
@@ -70,7 +68,6 @@ namespace bae_trader.Commands
 
             if (unitsToSell > 0 && profitPercent > _sellConfig.ProfitThresholdPercent)
             {
-                Console.WriteLine("Selling " + currentPosition.Symbol + "x" + unitsToSell);
                 
                 var newOrderRequest = new NewOrderRequest(
                     currentPosition.Symbol,
@@ -85,23 +82,25 @@ namespace bae_trader.Commands
                 {
                     if (IsOnCooldown(currentPosition.Symbol))
                     {
-                        Console.WriteLine("Skipping sale of " + currentPosition.Symbol + ", it's on cooldown.");
                         return;
                     }
+
+                    var saleMessage = "Attempting to sell" + currentPosition.Symbol + "x" + unitsToSell + " (" + Math.Round(profitPercent, 3) + "% profit)...";
+                    
                     var order = await _environment.alpacaTradingClient.PostOrderAsync(
                         newOrderRequest
                     );
 
-                    Console.WriteLine(order.OrderStatus);
+                    saleMessage += order.OrderStatus == OrderStatus.Accepted ? "Accepted!" : "Failed!";
+                    Console.WriteLine(saleMessage);
                 }
                 catch(RestClientErrorException ex)
                 {
-                    Console.WriteLine("Failed to sell " + currentPosition.Symbol);
+                    Console.WriteLine("Error when try to sell " + currentPosition.Symbol);
                     Console.WriteLine(ex.Message);
                 }
                 
             }
-            Console.WriteLine(currentPosition.Symbol + " isn't worth selling.");
         }
 
         public override IEnumerable<string> MatchingBaseCommands()
@@ -121,7 +120,6 @@ namespace bae_trader.Commands
             {
                 SymbolsOnCooldown.Remove(symbol);
             }
-            Console.WriteLine("Blocking purchase of " + symbol + ", too recently purchased.");
             return true;
         }
     }

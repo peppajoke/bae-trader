@@ -38,21 +38,15 @@ namespace bae_trader.Commands
             DollarsToInvest = Math.Min(_config.BuyBudgetDollarsPerRun, (int)account.TradableCash);
             if (DollarsToInvest < 1)
             {
-                Console.WriteLine("No budget to buy stocks with!");
                 return true;
             }
-            var chaosMode = _config.AddRandomVarianceInPurchaseDecisions;
             var allSymbols = Nasdaq.AllSymbols.Where(x => x.All(Char.IsLetterOrDigit)); // cleaning weird nasdaq values
             
             var snapshotsBySymbol = new Dictionary<string, ISnapshot>();
 
-            Console.WriteLine("Buying stocks with the following settings.");
-            Console.WriteLine("Budget: $" + DollarsToInvest);
-            Console.WriteLine("Maximum total investment count: " + _config.MaximumInvestmentCountPerRun);
-            if (chaosMode)
-            {
-                Console.WriteLine("Chaos mode is enabled. Random price variance will occur in your investment strategy.");
-            }
+            // Console.WriteLine("Buying stocks with the following settings.");
+            // Console.WriteLine("Budget: $" + DollarsToInvest);
+            // Console.WriteLine("Maximum total investment count: " + _config.MaximumInvestmentCountPerRun);
 
             // get all market data
             foreach (var symbols in allSymbols.Batch(500))
@@ -65,12 +59,6 @@ namespace bae_trader.Commands
 
             // figure out what min/max dollar values should be for the investment
             var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)DollarsToInvest))*10;
-
-            if (chaosMode)
-            {
-                maxPricePerShare *= new Random().Next(2, 30);
-                maxPricePerShare /= 10;
-            }
 
             var minPricePerShare = Math.Max(maxPricePerShare / 2, 5);
 
@@ -92,11 +80,9 @@ namespace bae_trader.Commands
                 }
             }
 
-            Console.WriteLine("Done!");
-
             var sortedSymbols = viableSymbolsForPurchase.Values.OrderBy(x => x.Quote.BidPrice).ToList();
 
-            SubmitBuyOrders(PickWinners(sortedSymbols), DollarsToInvest);
+            SubmitBuyOrders(await PickWinners(sortedSymbols), DollarsToInvest);
             return true;
         }
 
@@ -112,17 +98,16 @@ namespace bae_trader.Commands
             {
                 SymbolsOnCooldown.Remove(symbol);
             }
-            Console.WriteLine("Blocking purchase of " + symbol + ", too recently purchased.");
             return true;
         }
 
-        private List<ISnapshot> PickWinners(List<ISnapshot> candidates)
+        private async Task<List<ISnapshot>> PickWinners(List<ISnapshot> candidates)
         {
             var scoredInvestments = new List<InvestmentCandidate>();
 
             foreach (var candidate in candidates)
             {
-                var score = _scoringService.ScoreInvestment(candidate);
+                var score = await _scoringService.ScoreInvestment(candidate);
                 if (score < .2M)
                 {
                     continue;
@@ -147,8 +132,6 @@ namespace bae_trader.Commands
             var budgetPerSymbol = budget / investments.Count();
 
             var orderRequests = new List<NewOrderRequest>();
-
-            Console.WriteLine("Sending buy orders...");
             
             // todo add a cooldown for symbol buying
             foreach (var investment in investments)
@@ -165,14 +148,14 @@ namespace bae_trader.Commands
                     OrderType.Market,
                     TimeInForce.Ioc
                 );
-                Console.WriteLine(investment.Symbol + "x" + quantity + " price: $"+ investment.Quote.BidPrice);
+                Console.WriteLine("Buying " + investment.Symbol + "x" + quantity + " @ $"+ investment.Quote.BidPrice);
                 try
                 {
                     var order = await _environment.alpacaTradingClient.PostOrderAsync(newOrderRequest);
-                    Console.WriteLine(order.OrderStatus);
                 }
                 catch(Exception ex)
                 {
+                    Console.WriteLine("failed to buy stonks.");
                     Console.WriteLine(ex.Message);
                 }
             }
