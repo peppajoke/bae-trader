@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0-preview.7.21377.19"/>
     <PackageReference Include="System.Runtime.Caching" Version="6.0.0-preview.7.21377.19"/>
+    <PackageReference Include="Coinbase" Version="6.0.1"/>
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x86'  Or '$(RuntimeIdentifier)' == 'win-x64'">
     <None Update="stonksettings.live.json">

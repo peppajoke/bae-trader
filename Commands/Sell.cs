@@ -61,17 +61,11 @@ namespace bae_trader.Commands
             // Console.WriteLine("Change percent: " + profitPercent);
             // Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
 
-            // don't sell more than half your assets
-            var percentToSell = Math.Max(20, Math.Min(100, percentIncrease));
-
-            var unitsToSell = Decimal.ToInt64(currentPosition.IntegerQuantity * (percentToSell/100));
-
-            if (unitsToSell > 0 && profitPercent > _sellConfig.ProfitThresholdPercent)
+            if (currentPosition.IntegerQuantity > 0 && profitPercent > _sellConfig.ProfitThresholdPercent)
             {
-                
                 var newOrderRequest = new NewOrderRequest(
                     currentPosition.Symbol,
-                    unitsToSell,
+                    currentPosition.IntegerQuantity,
                     OrderSide.Sell,
                     OrderType.Market,
                     TimeInForce.Day
@@ -85,7 +79,7 @@ namespace bae_trader.Commands
                         return;
                     }
 
-                    var saleMessage = "Attempting to sell" + currentPosition.Symbol + "x" + unitsToSell + " (" + Math.Round(profitPercent, 3) + "% profit)...";
+                    var saleMessage = "Attempting to sell" + currentPosition.Symbol + "x" + currentPosition.IntegerQuantity + " (" + Math.Round(profitPercent, 3) + "% profit)...";
                     
                     var order = await _environment.alpacaTradingClient.PostOrderAsync(
                         newOrderRequest

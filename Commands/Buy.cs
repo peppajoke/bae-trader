@@ -136,11 +136,12 @@ namespace bae_trader.Commands
             // todo add a cooldown for symbol buying
             foreach (var investment in investments)
             {
-                if (IsOnCooldown(investment.Symbol))
+                
+                var quantity = (int)(Decimal.Round(budgetPerSymbol / investment.Quote.BidPrice, 0) - 1);
+                if (IsOnCooldown(investment.Symbol) || quantity < 1)
                 {
                     continue;
                 }
-                var quantity = (int)(Decimal.Round(budgetPerSymbol / investment.Quote.BidPrice, 0) - 1);
                 var newOrderRequest = new NewOrderRequest(
                     investment.Symbol,
                     quantity,

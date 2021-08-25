@@ -47,6 +47,7 @@ namespace bae_trader
             var buyConfig = config.GetSection("Buy").Get<BuyConfig>();
             var sellConfig = config.GetSection("Sell").Get<SellConfig>();
             var alpacaCredentials = config.GetSection("AlpacaCredentials").Get<AlpacaCredentials>();
+            var cryptoConfig = config.GetSection("Crypto").Get<CryptoConfig>();
 
             if (String.IsNullOrEmpty(alpacaCredentials.ClientId))
             {
@@ -67,8 +68,9 @@ namespace bae_trader
             var seller = new Sell(environment, sellConfig);
             var auto = new AutoInvest(environment, buyer, seller);
             var testEnv = new TestEnv(environment);
+            var crypto = new Crypto(cryptoConfig);
 
-            var commands = new List<BaseCommand>() { buyer, seller, auto, testEnv};
+            var commands = new List<BaseCommand>() { buyer, seller, auto, testEnv, crypto};
             var commander = new Commander();
             await commander.AddCommands(commands);
             Console.WriteLine("Bae-trader: What'll it be? (commands: autoinvest/auto, buy, sell)");
