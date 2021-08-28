@@ -107,7 +107,7 @@ namespace bae_trader.Commands
 
             foreach (var candidate in candidates)
             {
-                var score = await _scoringService.ScoreInvestment(candidate);
+                var score = await _scoringService.ScoreInvestment(candidate, _environment);
                 if (score < .2M)
                 {
                     continue;
@@ -116,6 +116,11 @@ namespace bae_trader.Commands
             }
 
             var orderedInvestments = scoredInvestments.OrderBy(x => x.Score).ToList();
+
+            if (!orderedInvestments.Any()) 
+            {
+                return new List<ISnapshot>();
+            }
 
             var winners = new List<ISnapshot>();
            
@@ -129,6 +134,10 @@ namespace bae_trader.Commands
 
         private async void SubmitBuyOrders(List<ISnapshot> investments, int budget)
         {
+            if (!investments.Any())
+            {
+                return;
+            }
             var budgetPerSymbol = budget / investments.Count();
 
             var orderRequests = new List<NewOrderRequest>();

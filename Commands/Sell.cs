@@ -79,7 +79,7 @@ namespace bae_trader.Commands
                         return;
                     }
 
-                    var saleMessage = "Attempting to sell" + currentPosition.Symbol + "x" + currentPosition.IntegerQuantity + " (" + Math.Round(profitPercent, 3) + "% profit)...";
+                    var saleMessage = "Attempting to sell " + currentPosition.Symbol + "x" + currentPosition.IntegerQuantity + " (" + Math.Round(profitPercent, 3) + "% profit)...";
                     
                     var order = await _environment.alpacaTradingClient.PostOrderAsync(
                         newOrderRequest

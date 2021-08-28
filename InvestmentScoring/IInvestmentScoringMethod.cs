@@ -1,11 +1,12 @@
 using System.Threading.Tasks;
 using Alpaca.Markets;
+using bae_trader.Configuration;
 
 namespace bae_trader.InvestmentScoring
 {
     public interface IInvestmentScoringMethod
     {
-         Task<decimal> ScoreInvestment(ISnapshot investment);
+         Task<decimal> ScoreInvestment(ISnapshot investment, AlpacaEnvironment environment);
          int ConfidenceFactor();
 
         // Ideas for new buy algos

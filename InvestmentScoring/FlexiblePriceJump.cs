@@ -1,4 +1,5 @@
 using Alpaca.Markets;
+using bae_trader.Configuration;
 using System;
 using System.Linq;
 using System.Runtime.Caching;
@@ -23,7 +24,7 @@ namespace bae_trader.InvestmentScoring
             return _confidenceFactor;
         }
 
-        public async Task<decimal> ScoreInvestment(ISnapshot investment)
+        public async Task<decimal> ScoreInvestment(ISnapshot investment, AlpacaEnvironment environment)
         {
             var cacheKey = investment.Symbol + ":" + _lookbackInterval;
             if (_cache.Contains(cacheKey))

@@ -68,9 +68,12 @@ namespace bae_trader
             var seller = new Sell(environment, sellConfig);
             var auto = new AutoInvest(environment, buyer, seller);
             var testEnv = new TestEnv(environment);
-            var crypto = new Crypto(cryptoConfig);
 
-            var commands = new List<BaseCommand>() { buyer, seller, auto, testEnv, crypto};
+            var commands = new List<BaseCommand>() { buyer, seller, auto, testEnv};
+
+            var crypto = new Crypto(cryptoConfig);
+            commands.Add(crypto);
+
             var commander = new Commander();
             await commander.AddCommands(commands);
             Console.WriteLine("Bae-trader: What'll it be? (commands: autoinvest/auto, buy, sell)");
