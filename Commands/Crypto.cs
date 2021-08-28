@@ -68,13 +68,14 @@ namespace bae_trader.Commands
             }
 
             ScanPricesForSale(usdFactors, accounts.Data);
-
-            Console.WriteLine("DONEZO");
+            await Task.Delay(1800000);
+            await Execute(arguments);
             return false;
         }
 
         private async void ScanPricesForSale(Dictionary<string, decimal> exchangeRates, IEnumerable<Account> accounts)
         {
+            Console.WriteLine("scanning for sales...");
             var holdings = CryptoPurchase.LoadAllFromDisk();
             // combine currencies, develop held rate per currency
 
@@ -112,11 +113,6 @@ namespace bae_trader.Commands
                     var th = "";
                 }
             }
-
-        }
-
-        private async void LookForCryptoToBuy()
-        {
 
         }
 
