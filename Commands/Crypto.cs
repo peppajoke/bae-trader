@@ -16,6 +16,8 @@ namespace bae_trader.Commands
         private readonly CryptoConfig _config;
         private readonly CoinbaseClient _client;
 
+        private HashSet<string> _liquidatedCurrencies = new HashSet<string>();
+
         private PaymentMethod _cashPaymentMethod;
         public Crypto(CryptoConfig config)
         {
@@ -38,7 +40,7 @@ namespace bae_trader.Commands
 
             foreach (var account in accounts.Data)
             {
-                Console.WriteLine(account.Name);
+                //Console.WriteLine(account.Name);
                 if (account.Balance.Currency == "USDC")
                 {
                     usdc = account.Balance.Amount;
@@ -85,6 +87,10 @@ namespace bae_trader.Commands
 
             foreach (var currency in currenciesHeld)
             {
+                if (_liquidatedCurrencies.Contains(currency))
+                {
+                    continue;
+                }
                 var matchingHoldings = holdings.Where(x => x.Currency == currency);
                 var totalQuantity = 0M;
                 var totalCost = 0M;
@@ -110,7 +116,7 @@ namespace bae_trader.Commands
                     var account = accounts.First(x => x.Currency.Code == currency);
                     var placeSell = new PlaceSell() { Currency = currency, Amount = totalQuantity, Commit = true, PaymentMethod = _cashPaymentMethod.Id};
                     var response = await _client.Sells.PlaceSellOrderAsync(account.Id,  placeSell);
-                    var th = "";
+                    _liquidatedCurrencies.Add(currency);
                 }
             }
 
