@@ -4,7 +4,6 @@ using LineCommander;
 using Alpaca.Markets;
 using bae_trader.Configuration;
 using System;
-using bae_trader.Data;
 using MoreLinq;
 using System.Linq;
 using bae_trader.InvestmentScoring;
@@ -40,7 +39,10 @@ namespace bae_trader.Commands
             {
                 return true;
             }
-            var allSymbols = Nasdaq.AllSymbols.Where(x => x.All(Char.IsLetterOrDigit)); // cleaning weird nasdaq values
+            
+            var request = new AssetsRequest();
+            var assets = await _environment.alpacaTradingClient.ListAssetsAsync(request);
+            var allSymbols = assets.Where(x => x.IsTradable).Select(x => x.Symbol);
             
             var snapshotsBySymbol = new Dictionary<string, ISnapshot>();
 

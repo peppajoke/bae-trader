@@ -23,6 +23,7 @@ namespace bae_trader.InvestmentScoring
             foreach (var method in scoringMethods)
             {
                 var thisScore = await method.ScoreInvestment(investment, environment) * Convert.ToDecimal(method.ConfidenceFactor());
+                thisScore = Math.Max(thisScore, 0);
                 Console.WriteLine("Method: " + method.GetType().Name);
                 Console.WriteLine("Score: " + thisScore);
                 score += thisScore;

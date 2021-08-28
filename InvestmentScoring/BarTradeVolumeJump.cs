@@ -19,9 +19,9 @@ namespace bae_trader.InvestmentScoring
         {
             try
             {
-                if (_cache.Contains(investment.Symbol))
+                if (_cache.Contains(GetCacheKey(investment.Symbol)))
                 {
-                    return Convert.ToDecimal(_cache.Get(investment.Symbol));
+                    return Convert.ToDecimal(_cache.Get(GetCacheKey(investment.Symbol)));
                 }
 
                 if (DateTime.Now.DayOfWeek == DayOfWeek.Monday)
@@ -49,6 +49,11 @@ namespace bae_trader.InvestmentScoring
             {
                 return 0;
             }
+        }
+
+        private string GetCacheKey(string symbol)
+        {
+            return DateTime.Today.DayOfYear + ":" + symbol;
         }
     }
 }
