@@ -79,6 +79,8 @@ namespace bae_trader.Commands
                         return;
                     }
 
+                    // todo: add a sale wait to hold out for a better deal
+
                     var saleMessage = "Attempting to sell " + currentPosition.Symbol + "x" + currentPosition.IntegerQuantity + " (" + Math.Round(profitPercent, 3) + "% profit)...";
                     
                     var order = await _environment.alpacaTradingClient.PostOrderAsync(

@@ -42,7 +42,7 @@ namespace bae_trader.Commands
             
             var request = new AssetsRequest();
             var assets = await _environment.alpacaTradingClient.ListAssetsAsync(request);
-            var allSymbols = assets.Where(x => x.IsTradable).Select(x => x.Symbol);
+            var allSymbols = assets.Where(x => x.IsTradable && x.Symbol != "W").Select(x => x.Symbol);
             
             var snapshotsBySymbol = new Dictionary<string, ISnapshot>();
 
@@ -60,9 +60,14 @@ namespace bae_trader.Commands
             var viableSymbolsForPurchase = new Dictionary<string, ISnapshot>();
 
             // figure out what min/max dollar values should be for the investment
-            var maxPricePerShare = (decimal)Math.Sqrt(Math.Sqrt((double)DollarsToInvest))*10;
+            var maxPricePerShare = DollarsToInvest / _config.MaxBuyWinners;
 
             var minPricePerShare = Math.Max(maxPricePerShare / 2, 5);
+
+            if (maxPricePerShare <= minPricePerShare)
+            {
+                return true;
+            }
 
             // Remove bad fits
             foreach (var snapshotBySymbol in snapshotsBySymbol) 
