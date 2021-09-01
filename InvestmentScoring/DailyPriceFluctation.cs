@@ -38,6 +38,10 @@ namespace bae_trader.InvestmentScoring
             {
                 return 0;
             }
+            catch(IndexOutOfRangeException ex)
+            {
+                return 0;
+            }
         }
     }
 }

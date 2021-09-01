@@ -68,6 +68,7 @@ namespace bae_trader
             var seller = new Sell(environment, sellConfig);
             var auto = new AutoInvest(environment, buyer, seller);
             var testEnv = new TestEnv(environment);
+            testEnv.Execute(new List<string>());
             var play = new Play(environment);
 
             var commands = new List<BaseCommand>() { buyer, seller, auto, testEnv, play};

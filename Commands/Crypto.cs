@@ -103,10 +103,7 @@ namespace bae_trader.Commands
                 var investedRate = totalQuantity/totalCost;
                 // rateDelta == 1 means you break even
                 var rateDelta = investedRate/exchangeRates[currency];
-                Console.WriteLine("Analyzing " + currency);
-                Console.WriteLine("investedRate: " + investedRate);
-                Console.WriteLine("exchangeRates[currency]: " + exchangeRates[currency]);
-                Console.WriteLine("rate delta: " + rateDelta);
+                Console.WriteLine(currency + ": " + Math.Round((rateDelta - 1)*100, 3) + "% profit if sold now.");
 
                 var percentProfit = (rateDelta - 1) * 100;
 
