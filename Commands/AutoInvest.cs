@@ -43,7 +43,7 @@ namespace bae_trader.Commands
                         Console.WriteLine("Going to sleep until the market opens. (" + Math.Round(timeUntilMarketOpen.TotalHours, 1) + " hours)");
                         
                         Console.WriteLine("The market opens at " + clock.NextOpenUtc.AddHours(-4) + " Eastern standard time");
-                        await Task.Delay((int)timeUntilMarketOpen.TotalHours * 3600000);
+                        await Task.Delay((int)timeUntilMarketOpen.TotalMilliseconds);
 
                         clock = await _environment.alpacaTradingClient.GetClockAsync();
                     }

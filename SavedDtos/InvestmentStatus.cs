@@ -19,16 +19,23 @@ namespace bae_trader.SavedDtos
 
     enum AccountType
     {
-        Stocks, Crypto
+        Stocks = 1, Crypto = 2
     }
 
     class Investment
     {
+        public AccountType Type { get; set; }
         public string Name { get; set; }
-        public decimal TotalSpent { get; set; }
-        public decimal TotalWithdrawn { get; set; }
-        public decimal CurrentValue { get; set; }
+        public decimal TotalBoughtUsd { get; set; }
+        public decimal TotalSoldUsd { get; set; }
         public decimal ToUsdFactor { get; set; }
         public decimal HeldQuantity { get; set; }
+
+        public override string ToString() 
+        { 
+            return "";
+        }
+
+
     }
 }

@@ -27,6 +27,7 @@ namespace bae_trader.Commands
 
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
+            Console.WriteLine("Selling...");
             var positions = await _environment.alpacaTradingClient.ListPositionsAsync();
             
             if (_sellConfig.ApprovedSymbolsForSale.Any())
@@ -61,7 +62,7 @@ namespace bae_trader.Commands
             // Console.WriteLine("Change percent: " + profitPercent);
             // Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
 
-            if (currentPosition.IntegerQuantity > 0 && profitPercent > _sellConfig.ProfitThresholdPercent)
+            if (currentPosition.IntegerQuantity > 0 && profitPercent > (Convert.ToDecimal(_sellConfig.ProfitThresholdPercent)/2))
             {
                 var newOrderRequest = new NewOrderRequest(
                     currentPosition.Symbol,

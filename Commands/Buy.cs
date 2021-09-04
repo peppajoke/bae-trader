@@ -39,6 +39,8 @@ namespace bae_trader.Commands
             {
                 return true;
             }
+
+            Console.WriteLine("Buying...");
             
             var request = new AssetsRequest();
             var assets = await _environment.alpacaTradingClient.ListAssetsAsync(request);
@@ -83,7 +85,7 @@ namespace bae_trader.Commands
                 }
                 catch(Exception ex)
                 {
-                    Console.WriteLine("failed to process " + snapshotBySymbol.Key + ": " + ex.Message);
+                    //Console.WriteLine("failed to process " + snapshotBySymbol.Key + ": " + ex.Message);
                 }
             }
 
@@ -122,7 +124,7 @@ namespace bae_trader.Commands
                 scoredInvestments.Add(new InvestmentCandidate() { Score = score, Snapshot = candidate});
             }
 
-            var orderedInvestments = scoredInvestments.OrderBy(x => x.Score).ToList();
+            var orderedInvestments = scoredInvestments.OrderByDescending(x => x.Score).ToList();
 
             if (!orderedInvestments.Any()) 
             {
@@ -145,7 +147,7 @@ namespace bae_trader.Commands
             {
                 return;
             }
-            var budgetPerSymbol = budget / investments.Count();
+            var budgetPerSymbol = budget / _config.MaxBuyWinners;
 
             var orderRequests = new List<NewOrderRequest>();
             

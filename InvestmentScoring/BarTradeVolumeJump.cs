@@ -53,6 +53,10 @@ namespace bae_trader.InvestmentScoring
             {
                 return 0;
             }
+            catch(Exception ex)
+            {
+                return 0;
+            }
 
         }
 
