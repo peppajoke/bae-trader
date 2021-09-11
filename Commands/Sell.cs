@@ -56,21 +56,23 @@ namespace bae_trader.Commands
                 return;
             }
 
-            var percentIncrease = profitPercent * 100 * 2;
+            var percentIncrease = profitPercent * 100;
 
             // Console.WriteLine("Analyzing position " + currentPosition.Symbol + "...");
             // Console.WriteLine("Change percent: " + profitPercent);
             // Console.WriteLine("Sale thresh: " + _sellConfig.ProfitThresholdPercent);
 
-            if (currentPosition.IntegerQuantity > 0 && profitPercent > (Convert.ToDecimal(_sellConfig.ProfitThresholdPercent)/2))
+            if (currentPosition.IntegerQuantity > 0 && profitPercent > _sellConfig.ProfitThresholdPercent)
             {
                 var newOrderRequest = new NewOrderRequest(
                     currentPosition.Symbol,
                     currentPosition.IntegerQuantity,
                     OrderSide.Sell,
-                    OrderType.Market,
+                    OrderType.Limit,
                     TimeInForce.Day
                 );
+
+                newOrderRequest.LimitPrice = currentPosition.AssetCurrentPrice;
 
                 // SELL STONKS!!
                 try

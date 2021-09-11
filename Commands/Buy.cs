@@ -34,7 +34,7 @@ namespace bae_trader.Commands
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
             var account = await _environment.alpacaTradingClient.GetAccountAsync();
-            DollarsToInvest = Math.Min(_config.BuyBudgetDollarsPerRun, (int)account.TradableCash);
+            DollarsToInvest = Math.Min(_config.BuyBudgetDollarsPerRun, (int)account.TradableCash - 700);
             if (DollarsToInvest < 1)
             {
                 return true;
@@ -117,7 +117,7 @@ namespace bae_trader.Commands
             foreach (var candidate in candidates)
             {
                 var score = await _scoringService.ScoreInvestment(candidate, _environment);
-                if (score < .2M)
+                if (score < 100M)
                 {
                     continue;
                 }
@@ -164,9 +164,12 @@ namespace bae_trader.Commands
                     investment.Symbol,
                     quantity,
                     OrderSide.Buy,
-                    OrderType.Market,
-                    TimeInForce.Ioc
+                    OrderType.Limit,
+                    TimeInForce.Day
                 );
+
+                newOrderRequest.LimitPrice = investment.Quote.BidPrice * .99M;
+
                 Console.WriteLine("Buying " + investment.Symbol + "x" + quantity + " @ $"+ investment.Quote.BidPrice);
                 try
                 {

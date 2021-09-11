@@ -1,3 +1,4 @@
+
 using System;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
@@ -55,6 +56,7 @@ namespace bae_trader.InvestmentScoring
             }
             catch(Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return 0;
             }
 

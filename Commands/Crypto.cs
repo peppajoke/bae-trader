@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using bae_trader.Configuration;
 using bae_trader.SavedDtos;
-using Coinbase;
-using Coinbase.Models;
+using BinanceClient;
+using BinanceClient.Crypto;
+using BinanceClient.Enums;
 using LineCommander;
 
 namespace bae_trader.Commands
@@ -14,15 +15,16 @@ namespace bae_trader.Commands
     public class Crypto : BaseCommand
     {
         private readonly CryptoConfig _config;
-        private readonly CoinbaseClient _client;
+
+        private readonly Client _client;
 
         private HashSet<string> _liquidatedCurrencies = new HashSet<string>();
 
-        private PaymentMethod _cashPaymentMethod;
         public Crypto(CryptoConfig config)
         {
             _config = config;
-            _client = new CoinbaseClient(new ApiKeyConfig{ ApiKey = config.CoinbaseApiKey, ApiSecret = config.CoinbaseSecret});
+            var wallet = Wallet.RestoreWalletFromMnemonic(_config.WalletPassPhrase, Network.Mainnet);
+            _client = new Client(wallet);
         }
         public override string Description()
         {
@@ -30,108 +32,8 @@ namespace bae_trader.Commands
         }
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            var accounts = await _client.Accounts.ListAccountsAsync();
-
-            var paymentMethods = await _client.PaymentMethods.ListPaymentMethodsAsync();
-            _cashPaymentMethod = paymentMethods.Data.First(x => x.Type == "fiat_account");
-
-            var usdc = 0M;
-            var cryptos = new Dictionary<string, decimal>();
-
-            foreach (var account in accounts.Data)
-            {
-                //Console.WriteLine(account.Name);
-                if (account.Balance.Currency == "USDC")
-                {
-                    usdc = account.Balance.Amount;
-                }
-                else
-                {
-                    if (!cryptos.ContainsKey(account.Balance.Currency))
-                    {
-                        cryptos.Add(account.Balance.Currency, 0);
-                    }
-                    cryptos[account.Balance.Currency] += account.Balance.Amount;
-
-                    if (account.Currency.Code == "DOGE")
-                    {
-                        // BuyCrypto(account, 1M, cashAccount);
-                    }
-                }
-            }
-
-            // load all crypto exchange rates
-            var usdFactors = new Dictionary<string, decimal>();
-            var prices = await _client.Data.GetExchangeRatesAsync();
-            foreach (var rate in prices.Data.Rates)
-            {
-                // Console.WriteLine(rate.Value);
-                usdFactors.Add(rate.Key, rate.Value);
-            }
-
-            ScanPricesForSale(usdFactors, accounts.Data);
-            await Task.Delay(1800000);
-            await Execute(arguments);
+            var response = _client.NewOrder("ETH", OrderType.Limit, Side.Sell, (decimal)499.999, (decimal)0.00001, TimeInForce.GTE);
             return false;
-        }
-
-        private async void ScanPricesForSale(Dictionary<string, decimal> exchangeRates, IEnumerable<Account> accounts)
-        {
-            Console.WriteLine("scanning for sales...");
-            var holdings = CryptoPurchase.LoadAllFromDisk();
-            // combine currencies, develop held rate per currency
-
-            var dictionary = new Dictionary<string, decimal>();
-            
-            var currenciesHeld = holdings.Select(x => x.Currency).Distinct();
-
-            foreach (var currency in currenciesHeld)
-            {
-                if (_liquidatedCurrencies.Contains(currency))
-                {
-                    continue;
-                }
-                var matchingHoldings = holdings.Where(x => x.Currency == currency);
-                var totalQuantity = 0M;
-                var totalCost = 0M;
-
-                foreach (var holding in matchingHoldings)
-                {
-                    totalQuantity += holding.Quantity;
-                    totalCost += holding.TotalCost;
-                }
-                var investedRate = totalQuantity/totalCost;
-                // rateDelta == 1 means you break even
-                var rateDelta = investedRate/exchangeRates[currency];
-                Console.WriteLine(currency + ": " + Math.Round((rateDelta - 1)*100, 3) + "% profit if sold now.");
-
-                var percentProfit = (rateDelta - 1) * 100;
-
-                if (percentProfit >= _config.ProfitThresholdPercent)
-                {
-                    Console.WriteLine("OK I WANNA SELL ALL OUR " + currency);
-                    var account = accounts.First(x => x.Currency.Code == currency);
-                    var placeSell = new PlaceSell() { Currency = currency, Amount = totalQuantity, Commit = true, PaymentMethod = _cashPaymentMethod.Id};
-                    var response = await _client.Sells.PlaceSellOrderAsync(account.Id,  placeSell);
-                    _liquidatedCurrencies.Add(currency);
-                }
-            }
-
-        }
-
-        private async void BuyCrypto(Account account, decimal quantity, PaymentMethod payment)
-        {
-            var placeBuy = new PlaceBuy() { Currency = account.Currency.Code, PaymentMethod = payment.Id, Quote = true, Amount = quantity};
-
-            // buy the crypto
-            var response = await _client.Buys.PlaceBuyOrderAsync(account.Id, placeBuy);
-
-            if (!response.HasError())
-            {
-                var purchase = new CryptoPurchase(response.Data);
-                //purchase.WriteToFile();
-            }
-
         }
 
         public override IEnumerable<string> MatchingBaseCommands()
