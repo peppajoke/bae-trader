@@ -5,15 +5,14 @@
     <RootNamespace>bae_trader</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="BinanceDEXClient" Version="1.0.2.1" />
-    <PackageReference Include="LineCommander" Version="1.0.9" />
-    <PackageReference Include="Alpaca.Markets" Version="5.1.0-rc1" />
-    <PackageReference Include="Alpaca.Markets.Extensions" Version="5.1.0-rc1" />
-    <PackageReference Include="morelinq" Version="3.3.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="System.Runtime.Caching" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Coinbase" Version="6.0.1" />
+    <PackageReference Include="LineCommander" Version="1.0.9"/>
+    <PackageReference Include="Alpaca.Markets" Version="5.1.0-rc1"/>
+    <PackageReference Include="Alpaca.Markets.Extensions" Version="5.1.0-rc1"/>
+    <PackageReference Include="morelinq" Version="3.3.2"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0-preview.7.21377.19"/>
+    <PackageReference Include="System.Runtime.Caching" Version="6.0.0-preview.7.21377.19"/>
+    <PackageReference Include="Binance.Net" Version="7.1.2"/>
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x86'  Or '$(RuntimeIdentifier)' == 'win-x64'">
     <None Update="stonksettings.live.json">

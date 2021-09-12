@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using bae_trader.Brains;
 using bae_trader.Commands;
 using bae_trader.Configuration;
 using LineCommander;
@@ -75,7 +76,8 @@ namespace bae_trader
 
             if (!usePaperEnvironment)
             {
-                var crypto = new Crypto(cryptoConfig);
+                var binanceBrain = new BinanceCryptoBrain(cryptoConfig);
+                var crypto = new Crypto(cryptoConfig, binanceBrain);
                 commands.Add(crypto);
             }
 

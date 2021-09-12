@@ -1,22 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Coinbase.Models;
 
 namespace bae_trader.SavedDtos
 {
     public class CryptoPurchase
     {
-        private readonly Buy _buy;
 
         public string Currency { get;set; }
         public decimal Quantity { get;set; }
         public decimal TotalCost { get;set; }
 
-        public CryptoPurchase(Buy buy)
-        {
-            _buy = buy;
-        }
         
         private CryptoPurchase(string fileLine)
         {
@@ -29,8 +23,8 @@ namespace bae_trader.SavedDtos
         public async void WriteToFile()
         {
             using StreamWriter file = new("cryptobuy.log", append: true);
-            var transactionID = _buy.Transaction is null ? "fake_trans" : _buy.Transaction.Id;
-            await file.WriteLineAsync(_buy.Amount.Currency + ":" + transactionID + ":" + _buy.Amount.Amount + ":" + _buy.Total.Amount + ":" + _buy.Total.Currency);
+            //var transactionID = _buy.Transaction is null ? "fake_trans" : _buy.Transaction.Id;
+            //await file.WriteLineAsync(_buy.Amount.Currency + ":" + transactionID + ":" + _buy.Amount.Amount + ":" + _buy.Total.Amount + ":" + _buy.Total.Currency);
         }
 
         public static IEnumerable<CryptoPurchase> LoadAllFromDisk()

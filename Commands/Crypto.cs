@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using bae_trader.Configuration;
-using bae_trader.SavedDtos;
-using BinanceClient;
-using BinanceClient.Crypto;
-using BinanceClient.Enums;
+using Binance.Net;
+using Binance.Net.Objects;
+using CryptoExchange.Net.Authentication;
 using LineCommander;
+using Binance.Net.Enums;
+using System.Collections.Concurrent;
+using Binance.Net.Objects.Spot.UserStream;
+using bae_trader.Brains;
 
 namespace bae_trader.Commands
 {
@@ -16,15 +17,13 @@ namespace bae_trader.Commands
     {
         private readonly CryptoConfig _config;
 
-        private readonly Client _client;
+        private readonly ICryptoBrain _cryptoBrain;
 
-        private HashSet<string> _liquidatedCurrencies = new HashSet<string>();
-
-        public Crypto(CryptoConfig config)
+        public Crypto(CryptoConfig config, ICryptoBrain cryptoBrain)
         {
             _config = config;
-            var wallet = Wallet.RestoreWalletFromMnemonic(_config.WalletPassPhrase, Network.Mainnet);
-            _client = new Client(wallet);
+            _cryptoBrain = cryptoBrain;
+
         }
         public override string Description()
         {
@@ -32,13 +31,16 @@ namespace bae_trader.Commands
         }
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            var response = _client.NewOrder("ETH", OrderType.Limit, Side.Sell, (decimal)499.999, (decimal)0.00001, TimeInForce.GTE);
+            await _cryptoBrain.Trade();
             return false;
         }
+
+        
 
         public override IEnumerable<string> MatchingBaseCommands()
         {
             return new List<string> () { "crypto" };
         }
+        
     }
 }
