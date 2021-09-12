@@ -1,5 +1,5 @@
 # bae-trader
-Stockbot for getting rich
+Bae-trader is an all purpose investment manager. Currently, bae-trader supports algorithmic stock trading via Alpaca Markets API, and crypto trading via Binance API.
 
 # How to get started
 1. Create a free account on alpaca: https://app.alpaca.markets/
