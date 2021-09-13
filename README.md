@@ -31,11 +31,10 @@ Use the crypto command to allow bae-trader to buy and sell crypto currencies thr
 # Running Bae-trader with a single command
 To make things simple, you can also specify the starting command for Bae-trader. This will allow you to enable autonomous trading as soon as you launch Bae-trader. For example...
 
-`dotnet run -- paper auto` to run a stock trader
+`dotnet run -- paper auto` to run an "on paper" stock trader
 or
-`dotnet run -- paper crypto` to run a crypto trader
+`dotnet run -- live crypto` to run a live crypto trader
 
-This will automatically launch Bae-trader into auto-investing in the paper environment with a single command.
 
 # Configuring Bae-trader
 
