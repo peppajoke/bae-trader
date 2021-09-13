@@ -11,6 +11,12 @@ Bae-trader is an all purpose investment manager. Currently, bae-trader supports 
 3. Generate API keys for each environment on the alpaca website. Put these keys somewhere safe.
 4. Run `dotnet run -- paper auto` to configure your "just on paper environment, or `dotnet run -- live auto` to configure your real world stock trading environment!
 
+# How to get started with crypto trading
+1. Create a free account on Binance.us: https://www.binance.us/en/home
+2. Confirm your identity through Binance (this takes several steps).
+3. Request API keys from the site. Store them somewhere safe.
+4. Once you have an API key and a secret key, run `dotnet run -- live crypto` to set up your crypto trading environment.
+
 # Running the app
 To start bae-trader, you just need to navigate to the bae-trader directory in a terminal and run one of the following commands.
 
