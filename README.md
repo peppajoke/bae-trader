@@ -21,7 +21,7 @@ Once you run bae-trader, you can execute several commands for interacting with y
 ## Autoinvest
 `autoinvest` or `auto`
 
-The autoinvest command will wake up and make trades every n minutes (configured in json settings) in the environment specified.
+The autoinvest command automatically manage your stock portfolio on Alpaca Markets.
 
 ## Crypto
 `crypto`
