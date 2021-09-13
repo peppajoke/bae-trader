@@ -99,7 +99,7 @@ namespace bae_trader.Brains
                 });
                 if (!tradeResult.Success)
                 {
-                    Console.WriteLine("Failed to listen for trade updates.");
+                    Console.WriteLine("Failed to listen for trade updates for " + symbol);
                     return;
                 }
                 else
@@ -108,11 +108,7 @@ namespace bae_trader.Brains
                 }
             }
 
-            PlaceMissingOrders();
-            while(true)
-            {
-                Console.ReadLine();
-            }
+            await PlaceMissingOrders();
         }
 
         private async void SocketTrade(BinanceStreamTrade trade)
@@ -133,10 +129,15 @@ namespace bae_trader.Brains
             foreach(var delta in _coinPriceDeltas)
             {
                 var symbol = delta.Key;
+                if (!_orders.ContainsKey(symbol))
+                {
+                    continue;
+                }
+                Console.ResetColor();
                 var percentChange = (_coinPriceDeltas[symbol] / _coinPrices[symbol])*100;
 
-                var buys = _orders[symbol.Replace("USD", "")].Where(x=> x.Side == OrderSide.Buy && x.Status == OrderStatus.New);
-                var sells = _orders[symbol.Replace("USD", "")].Where(x=> x.Side == OrderSide.Sell && x.Status == OrderStatus.New);
+                var buys = _orders[symbol].Where(x=> x.Side == OrderSide.Buy && x.Status == OrderStatus.New);
+                var sells = _orders[symbol].Where(x=> x.Side == OrderSide.Sell && x.Status == OrderStatus.New);
                 var buyThresh = "none";
                 var sellThresh = "none";
 
@@ -149,8 +150,66 @@ namespace bae_trader.Brains
                 {
                     sellThresh = sells.First().Price.ToString();
                 }
+                if (sellThresh != "none" && Convert.ToDecimal(sellThresh) <= _coinPrices[symbol] )
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                }
+                else if (buyThresh != "none" && Convert.ToDecimal(buyThresh) >= _coinPrices[symbol] )
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                }
+                else if (percentChange > 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                }
+                else if (percentChange < 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                }
+                
+                Console.WriteLine(symbol+ ": $" + _coinPrices[symbol] + " Delta: " + Math.Round(percentChange, 2) + "% Sell @ $" + sellThresh + " Buy @ $" + buyThresh);
+                
+                if (sellThresh != "none" )
+                {
+                    var blocksToSell = _coinPriceDeltas[symbol] / (Convert.ToDecimal(sellThresh) - (_coinPrices[symbol] - _coinPriceDeltas[symbol]));
+                    for(var i=0;i<=10;i++)
+                    {
+                        if (blocksToSell > 0)
+                        {
+                            Console.Write("-");
+                            blocksToSell--;
+                        }
+                        else
+                        {
+                            Console.Write(" ");
+                        }
+                    }
+                    Console.Write("Sell");
+                    Console.WriteLine("");
+                }
 
-                Console.WriteLine(symbol+ ": $" + _coinPrices[symbol] + " " + Math.Round(percentChange, 2) + "% Sell @ $" + sellThresh + " Buy @ $" + buyThresh);
+                if (buyThresh != "none" && _coinPriceDeltas[symbol] > 0)
+                {
+                    var blocksToBuy = (1-((_coinPrices[symbol] - _coinPriceDeltas[symbol]) / (_coinPrices[symbol] - Convert.ToDecimal(buyThresh))))*10;
+                    for(var i=0;i<=10;i++)
+                    {
+                        if (blocksToBuy > 0)
+                        {
+                            Console.Write("-");
+                            blocksToBuy--;
+                        }
+                        else
+                        {
+                            Console.Write(" ");
+                        }
+                    }
+                    Console.Write("Buy");
+                    Console.WriteLine("");
+                }
             }
         }
 
@@ -163,31 +222,39 @@ namespace bae_trader.Brains
                 await RefreshHeldAssets();
                 if (data.Side == OrderSide.Buy)
                 {
-                    SmartBuy(data.Symbol);
+                    SmartBuy(data.Symbol.Replace("USD", ""));
                 }
                 else
                 {
-                    SmartSell(data.Symbol);
+                    SmartSell(data.Symbol.Replace("USD", ""));
                 }
             }
+            await PlaceMissingOrders();
         }
 
         private async void SmartBuy(string symbol)
         {
-            var targetSpend = _assets.Cash * .3M;
+            var targetSpend = _assets.Cash * .1M;
+            if (targetSpend < 20M)
+            {
+                return;
+            }
             var targetPrice = _coinPrices[symbol] * .98M;
             var targetQuantity = targetSpend / targetPrice;
             Console.WriteLine("AGGRESSIVE BUY TIME... " + symbol + " price: " + targetPrice + " targetQuantity: " + targetQuantity);
-            await BuyCoin(symbol, targetQuantity, targetPrice, TimeInForce.GoodTillCancel);
+            await TradeCoin(symbol, targetQuantity, targetPrice, TimeInForce.GoodTillCancel, OrderSide.Buy);
         }
 
         private async void SmartSell(string symbol)
         {
-            // set up a more aggressive sell
-            var targetSellOffQuantity = _assets.Coins[symbol.Replace("USD", "")] * .2M;
             var targetPrice = _coinPrices[symbol] * 1.02M;
-            Console.WriteLine("AGGRESSIVE SELL TIME... " + symbol + " price: " + targetPrice + " targetQuantity: " + targetSellOffQuantity);
-            await SellCoin(symbol,  targetSellOffQuantity, targetPrice, TimeInForce.GoodTillCancel);
+            if (_assets.Coins[symbol] * targetPrice < 40M)
+            {
+                return;
+            }
+            // set up a more aggressive sell
+            var targetSellOffQuantity = _assets.Coins[symbol] * .5M;
+            await TradeCoin(symbol,  targetSellOffQuantity, targetPrice, TimeInForce.GoodTillCancel, OrderSide.Sell);
         }
 
         private async void SocketOrdersUpdate(BinanceStreamOrderList data)
@@ -221,15 +288,15 @@ namespace bae_trader.Brains
 
         private async Task RefreshOrders()
         {
-            foreach (var coin in _assets.Coins)
+            foreach (var symbol in _approvedSymbols)
             {
-                var orders = await _client.Spot.Order.GetOrdersAsync(coin.Key + "USD");
-                _orders[coin.Key] = orders.Data;
-                var price = _coinPrices[coin.Key];
+                var orders = await _client.Spot.Order.GetOrdersAsync(symbol + "USD");
+                _orders[symbol] = orders.Data ?? new List<BinanceOrder>();
+                var price = _coinPrices[symbol];
                 if (orders.Data.Where(x=> x.Status == OrderStatus.New).Any())
                 {
-                    Console.WriteLine(coin.Key + " price: " + price);
-                    Console.WriteLine(coin.Key + " orders...");
+                    Console.WriteLine(symbol + " price: " + price);
+                    Console.WriteLine(symbol + " orders...");
                 }
                 foreach(var order in orders.Data)
                 {
@@ -268,6 +335,10 @@ namespace bae_trader.Brains
             await RefreshOrders();
             foreach(var symbol in _approvedSymbols)
             {
+                if (!_orders.ContainsKey(symbol))
+                {
+                    continue;
+                }
                 var openBuys = _orders[symbol].Where(x=> x.Status == OrderStatus.New && x.Side == OrderSide.Buy);
                 var openSells = _orders[symbol].Where(x=> x.Status == OrderStatus.New && x.Side == OrderSide.Sell);
                 if (!openBuys.Any())
@@ -276,54 +347,53 @@ namespace bae_trader.Brains
                 }
                 if (!openSells.Any())
                 {
+                    if (!_assets.Coins.ContainsKey(symbol))
+                    {
+                        _assets.Coins[symbol] = 0M;
+                    }
                     SmartSell(symbol);
                 }
             }
         }
 
-        private async Task<bool> BuyCoin(string symbol, decimal quantity, decimal price, TimeInForce timeInForce)
+        private async Task<bool> TradeCoin(string symbol, decimal quantity, decimal price, TimeInForce timeInForce, OrderSide side)
         {
-            if (_assets.Cash < price * quantity || quantity * price < 10)
+            if (side == OrderSide.Buy && _assets.Cash < price * quantity || quantity * price < 10)
             {
                 Console.WriteLine("Not enough cash to invest in buys!");
                 return false;
             }
-            var response = await _client.Spot.Order.PlaceOrderAsync(symbol+"USD", OrderSide.Buy, OrderType.Limit, quantity: Math.Round(quantity, 1), price: Math.Round(price, 2), timeInForce: timeInForce);
+            var response = await _client.Spot.Order.PlaceOrderAsync(symbol+"USD", side, OrderType.Limit, quantity: Math.Round(quantity, 1), price: Math.Round(price, 2), timeInForce: timeInForce);
             if (response.Success)
             {
-                Console.WriteLine("Successfully placed buy order for " + symbol + "x" + quantity + " @ $" + price);
+                Console.WriteLine("Successfully placed " + side + " order for " + symbol + "x" + quantity + " @ $" + price);
                 return true;
             }
-            Console.WriteLine("Buy order failed!");
-            Console.WriteLine(response.Error);
-            return false;
-        }
-
-        private async Task<bool> SellCoin(string symbol, decimal quantity, decimal price, TimeInForce timeInForce)
-        {
-            var response = await _client.Spot.Order.PlaceOrderAsync(symbol+"USD", OrderSide.Sell, OrderType.Limit, quantity: Math.Round(quantity, 1), price: Math.Round(price, 2), timeInForce: timeInForce);
-            if (response.Success)
-            {
-                Console.WriteLine("Successfully placed sell order for " + symbol + "x" + quantity + " @ $" + price);
-                return true;
-            }
-            Console.WriteLine("Sell order failed: " + symbol + "x" + quantity + " @ $" + price);
+            Console.WriteLine(side + " order failed: " + symbol + "x" + quantity + " @ $" + price);
             Console.WriteLine(response.Error);
             return false;
         }
 
         public async Task Trade()
         {
-            await Task.WhenAll(
-                RefreshMarketPrices(),
-                RefreshHeldAssets()
-            );
+            try
+            {
+                await Task.WhenAll(
+                    RefreshMarketPrices(),
+                    RefreshHeldAssets()
+                );
 
-            // Orders need to know our assets first.
-            await RefreshOrders();
+                // Orders need to know our assets first.
+                await RefreshOrders();
 
-            // Socket time
-            await StartSockets();
+                // Socket time
+                await StartSockets();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                await Trade();
+            }
         }
     }
 }
