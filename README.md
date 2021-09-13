@@ -1,15 +1,18 @@
 # bae-trader
 Bae-trader is an all purpose investment manager. Currently, bae-trader supports algorithmic stock trading via Alpaca Markets API, and crypto trading via Binance API.
 
-# How to get started
+# Required Software
+1. Download and install the .NET core 5 runtime on your computer: https://dotnet.microsoft.com/download
+
+# How to get started with stock trading
 1. Create a free account on alpaca: https://app.alpaca.markets/
 2. Set up a paper (simulation environment) and/or a live account.
 3. Clone this repository on your local machine.
-3. Generate API keys for each environment on the alpaca website, and insert them into your local alpaca configurations within bae-trader
-here: https://github.com/peppajoke/bae-trader/blob/master/stonksettings.paper.json and here https://github.com/peppajoke/bae-trader/blob/master/stonksettings.live.json
-4. Run the program in a terminal and start trading.
+3. Generate API keys for each environment on the alpaca website. Put these keys somewhere safe.
+4. Run `dotnet run -- paper auto` to configure your "just on paper environment, or `dotnet run -- live auto` to configure your real world stock trading environment!
 
-`dotnet build`
+# Running the app
+To start bae-trader, you just need to navigate to the bae-trader directory in a terminal and run one of the following commands.
 
 `dotnet run paper` to run the CLI in a paper environment
 
@@ -18,12 +21,12 @@ here: https://github.com/peppajoke/bae-trader/blob/master/stonksettings.paper.js
 # Bae-trader commands
 Once you run bae-trader, you can execute several commands for interacting with your target market.
 
-## Autoinvest
+## Command: Autoinvest
 `autoinvest` or `auto`
 
 The autoinvest command automatically manage your stock portfolio on Alpaca Markets.
 
-## Crypto
+## Command: Crypto
 `crypto`
 
 Use the crypto command to allow bae-trader to buy and sell crypto currencies through the Binance exchange.
