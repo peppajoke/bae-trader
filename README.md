@@ -23,16 +23,10 @@ Once you run bae-trader, you can execute several commands for interacting with y
 
 The autoinvest command will wake up and make trades every n minutes (configured in json settings) in the environment specified.
 
-## Buy
-`buy`
+## Crypto
+`crypto`
 
-If you don't want Bae-trader buying autonomously, you can just ask it to buy stocks using the buy command. Bae-trader's buy settings will be pulled from your json configuration mentioned above.
-
-
-## Sell
-`sell`
-
-If you don't want Bae-trader selling autonomously, you can just ask it to sell stocks using the sell command. Bae-trader's sell settings will be pulled from your json configuration mentioned above.
+Use the crypto command to allow bae-trader to buy and sell crypto currencies through the Binance exchange.
 
 # Running Bae-trader with a single command
 To make things simple, you can also specify the starting command for Bae-trader. This will allow you to enable autonomous trading as soon as you launch Bae-trader. For example...
