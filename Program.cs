@@ -90,10 +90,30 @@ namespace bae_trader
                 var remainingCommands = args.Skip(1).ToArray();
                 var startingCommand = String.Join(' ', remainingCommands);
                 Console.WriteLine("Autostarting with command: " + startingCommand);
-                await commander.SendCommandInput(startingCommand);
+                var errorOrInit = true;
+                while(errorOrInit)
+                {
+                    errorOrInit = false;
+                    try
+                    {
+                        await commander.SendCommandInput(startingCommand);
+                    }
+                    catch(Exception e)
+                    {
+                        throw;
+                        errorOrInit = true;
+                        Console.WriteLine(e.Message);
+                    }
+
+                }
+                
             }
 
             await commander.ListenForCommands();
+            while(true)
+            {
+
+            }
         }
     }
 }

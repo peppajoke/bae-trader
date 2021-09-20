@@ -10,6 +10,7 @@ using Binance.Net.Enums;
 using System.Collections.Concurrent;
 using Binance.Net.Objects.Spot.UserStream;
 using bae_trader.Brains;
+using System.Linq;
 
 namespace bae_trader.Commands
 {
@@ -31,7 +32,20 @@ namespace bae_trader.Commands
         }
         public override async Task<bool> Execute(IEnumerable<string> arguments)
         {
-            await _cryptoBrain.Trade();
+            if (arguments.Any(x => x == "wait"))
+            {
+                await Task.Delay(21600000);
+            }
+            try
+            {
+                await _cryptoBrain.Trade();
+            }
+            catch(Exception ex)
+            {
+                throw;
+                await Task.Delay(10000);
+                await Execute(arguments);
+            }
             return false;
         }
 

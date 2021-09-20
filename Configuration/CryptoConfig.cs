@@ -8,5 +8,8 @@ namespace bae_trader.Configuration
         public string BinanceSecret {get; set; }
 
         public IEnumerable<string> AutotradeCoins { get; set; }
+
+        public int BuyPercentThreshold { get;set; }
+        public int SellPercentThreshold { get;set; }
     }
 }
