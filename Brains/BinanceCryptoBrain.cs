@@ -248,7 +248,6 @@ namespace bae_trader.Brains
             lock(_approvedBuys)
             {
                 _approvedBuys.Add(symbol);
-                Console.WriteLine("Approved buy: " + symbol);
             }
         }
 
@@ -268,10 +267,14 @@ namespace bae_trader.Brains
                         }
                         if (targetSpend < 20M)
                         {
-                            Console.WriteLine("Buy order too small, skipping "+symbol);
                             continue;
                         }
                         var targetPrice = _coinPrices[symbol] * (.9999M);
+                        if (symbol == "BTC" || symbol == "ETH")
+                        {
+                            // order volumce on these two is nuts. Sometimes causes too high of a buy
+                            targetPrice *= .95M;
+                        }
                         var targetQuantity = targetSpend / targetPrice;
                         Console.WriteLine("AGGRESSIVE BUY TIME... " + symbol + " price: " + targetPrice + " targetQuantity: " + targetQuantity);
 
