@@ -94,9 +94,10 @@ namespace bae_trader
                 while(errorOrInit)
                 {
                     errorOrInit = false;
+                    await commander.SendCommandInput(startingCommand);
                     try
                     {
-                        await commander.SendCommandInput(startingCommand);
+                        
                     }
                     catch(Exception e)
                     {

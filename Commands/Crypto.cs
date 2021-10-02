@@ -38,7 +38,8 @@ namespace bae_trader.Commands
             }
             try
             {
-                await _cryptoBrain.Trade();
+                var liquidate = arguments.Any(x => x == "liquidate");
+                await _cryptoBrain.Trade(liquidate);
             }
             catch(Exception ex)
             {

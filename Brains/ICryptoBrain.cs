@@ -4,6 +4,6 @@ namespace bae_trader.Brains
 {
     public interface ICryptoBrain
     {
-         Task Trade();
+         Task Trade(bool liquidate);
     }
 }

@@ -25,9 +25,6 @@ namespace bae_trader.Brains
         private readonly BinanceSocketClient _socketClient;
 
         private BinanceAssets _assets;
-
-        private HashSet<string> _approvedSymbols = new HashSet<string>();
-
         private ConcurrentDictionary<string, decimal> _coinPrices = new ConcurrentDictionary<string, decimal>();
         private ConcurrentDictionary<string, IEnumerable<BinanceOrder>> _orders = new ConcurrentDictionary<string, IEnumerable<BinanceOrder>>();
 
@@ -41,6 +38,11 @@ namespace bae_trader.Brains
         private HashSet<string> _approvedBuys = new HashSet<string>();
 
         private HashSet<string> _openBuySymbols = new HashSet<string>();
+
+        private Dictionary<string,decimal> _currentDollarsInvestedByCoin = new Dictionary<string, decimal>();
+        private Dictionary<string,decimal> _totalDollarsInvestedByCoin = new Dictionary<string, decimal>();
+
+        private Dictionary<string,decimal> _costBasis = new Dictionary<string, decimal>();
 
         public BinanceCryptoBrain(CryptoConfig config)
         {
@@ -58,13 +60,22 @@ namespace bae_trader.Brains
                 AutoReconnect = true,
                 ReconnectInterval = TimeSpan.FromSeconds(15)
             });
-            
-            _approvedSymbols = new HashSet<string>(config.AutotradeCoins);
             _config = config;
             _buyService = new SmartCryptoBuyService();
             _sellService = new SmartCryptoSellService();
         }
 
+        private decimal GetProfitableSaleRate(string symbol)
+        {
+            try
+            {
+                return (_costBasis[symbol] / _assets.Coins[symbol]) * (1 + (_config.SellPercentThreshold/100M));
+            }
+            catch(Exception ex)
+            {
+                return -1;
+            }
+        }
 
         private async Task StartSockets()
         {
@@ -122,20 +133,13 @@ namespace bae_trader.Brains
                 Console.WriteLine("Listening for account updates...");
             }
 
-            var symbols = (await _client.Spot.System.GetExchangeInfoAsync()).Data.Symbols;
-            foreach(var symbol in symbols)
-            {
-                if (symbol.QuoteAsset == "USD")
-                {
-                    _symbols.Add(symbol.Name.Replace("USD",""), symbol);
-                }
-            }
+
 
             Console.WriteLine("Placing missing orders...");
 
             Console.WriteLine("Setting up sockets...");
             var tradeUpdateTasks = new List<Task>();
-            foreach(var symbol in _approvedSymbols)
+            foreach(var symbol in _config.AllUsedSymbols)
             {
                 tradeUpdateTasks.Add(_socketClient.Spot.SubscribeToTradeUpdatesAsync(symbol + "USD",
                 data => 
@@ -145,8 +149,6 @@ namespace bae_trader.Brains
             }
 
             await Task.WhenAll(tradeUpdateTasks);
-
-            await PlaceMissingOrders();
 
             Console.WriteLine("Listening for coins to buy...");
             ListenForBuys();
@@ -221,6 +223,8 @@ namespace bae_trader.Brains
             {
                 // todo remove this and just update order state
                 await RefreshHeldAssets();
+                await RefreshOrders();
+                await RefreshCostBasis();
                 if (data.Side == OrderSide.Buy)
                 {
                     _buyService.ConsiderBuying(data.Symbol);
@@ -255,11 +259,17 @@ namespace bae_trader.Brains
         {
             Task.Factory.StartNew(async() => 
             {
+                var cycles = 0;
                 while(true)
                 {
                     var processedSymbols = new HashSet<string>();
                     foreach(var symbol in _approvedBuys)
                     {
+                        if (!IsReadyForBuy(symbol))
+                        {
+                            processedSymbols.Add(symbol);
+                            continue;
+                        }
                         var targetSpend = _assets.Cash * await _buyService.GetPercentBuy(symbol);
                         if (targetSpend < 20M && _assets.Cash > 20M)
                         {
@@ -269,17 +279,20 @@ namespace bae_trader.Brains
                         {
                             continue;
                         }
-                        var targetPrice = _coinPrices[symbol] * (.9999M);
+                        var targetPrice = _coinPrices[symbol] * (.995M);
                         if (symbol == "BTC" || symbol == "ETH")
                         {
                             // order volumce on these two is nuts. Sometimes causes too high of a buy
-                            targetPrice *= .95M;
+                            // targetPrice *= .95M;
                         }
                         var targetQuantity = targetSpend / targetPrice;
                         Console.WriteLine("AGGRESSIVE BUY TIME... " + symbol + " price: " + targetPrice + " targetQuantity: " + targetQuantity);
 
-                        await TradeCoin(symbol, targetQuantity, targetPrice, TimeInForce.GoodTillCancel, OrderSide.Buy);
+                        var success = await TradeCoin(symbol, targetQuantity, targetPrice, TimeInForce.GoodTillCancel, OrderSide.Buy);
                         processedSymbols.Add(symbol);
+
+                        _sellService.ResetSymbol(symbol);
+
                     }
                     await Task.Delay(100);
                     lock(_approvedBuys)
@@ -287,26 +300,41 @@ namespace bae_trader.Brains
                         foreach(var symbol in processedSymbols)
                         {
                             _approvedBuys.Remove(symbol);
-                            Console.WriteLine("clearing buy for " + symbol);
                         }
+                    }
+                    cycles++;
+
+                    if (cycles > 100000)
+                    {
+                        await RefreshHeldAssets();
+                        await RefreshOrders();
+                        await PlaceMissingOrders();
+                        cycles = 0;
                     }
                 }
             });
         }
         private bool IsReadyForBuy(string symbol)
         {
-            if (!_coinPriceDeltas.ContainsKey(symbol))
+            if (!_coinPriceDeltas.ContainsKey(symbol) || !_config.AutoBuy.Contains(symbol))
             {
                 return false;
             }
             return _coinPriceDeltas[symbol] <= -_config.BuyPercentThreshold;
         }
-
         private async void SmartSell(string symbol)
         {
-            var targetPrice = _coinPrices[symbol] * (1M + _config.SellPercentThreshold/100M);
+            if (!_config.AutoSell.Contains(symbol))
+            {
+                return;
+            }
+            var targetPrice = Math.Max(GetProfitableSaleRate(symbol), _coinPrices[symbol] * (1M + _config.SellPercentThreshold/100M));
 
             // set up a more aggressive sell
+            if (!_assets.Coins.ContainsKey(symbol))
+            {
+                return;
+            }
             var targetSellOffQuantity = _assets.Coins[symbol] * await _sellService.GetPercentSell(symbol);
             
             if (targetSellOffQuantity * targetPrice < 10M)
@@ -318,6 +346,7 @@ namespace bae_trader.Brains
             {
                 _sellService.ResetSymbol(symbol);
             }
+            _buyService.ResetSymbol(symbol);
         }
 
         private async void SocketOrdersUpdate(BinanceStreamOrderList data)
@@ -359,7 +388,7 @@ namespace bae_trader.Brains
 
         private async Task RefreshOrders()
         {
-            foreach (var symbol in _approvedSymbols)
+            foreach (var symbol in _config.AllUsedSymbols)
             {
                 var orders = await _client.Spot.Order.GetOrdersAsync(symbol + "USD");
                 _orders[symbol] = orders.Data ?? new List<BinanceOrder>();
@@ -402,7 +431,7 @@ namespace bae_trader.Brains
 
         private async Task PlaceMissingOrders()
         {
-            foreach(var symbol in _approvedSymbols)
+            foreach(var symbol in _config.AllUsedSymbols)
             {
                 if (!_orders.ContainsKey(symbol))
                 {
@@ -414,6 +443,7 @@ namespace bae_trader.Brains
                 {
                     SmartBuy(symbol);
                 }
+
                 if (!openSells.Any())
                 {
                     if (!_assets.Coins.ContainsKey(symbol))
@@ -471,7 +501,133 @@ namespace bae_trader.Brains
             return false;
         }
 
-        public async Task Trade()
+        private async Task RefreshCostBasis()
+        {
+
+            var newAssets = new BinanceAssets();
+            newAssets.Coins = new Dictionary<string,decimal>();
+
+            var totalDollarsSoldByCoin = new Dictionary<string,decimal>();
+
+            foreach(var symbol in _orders)
+            {
+                newAssets.Coins[symbol.Key] = 0M;
+                _currentDollarsInvestedByCoin[symbol.Key] = 0M;
+                _totalDollarsInvestedByCoin[symbol.Key] = 0M;
+                totalDollarsSoldByCoin[symbol.Key] = 0M;
+
+                _costBasis[symbol.Key] = 0M;
+
+                var costBasisRemainingInCoins = _assets.Coins.ContainsKey(symbol.Key) ? _assets.Coins[symbol.Key] : 0;
+
+                foreach(var order in _orders[symbol.Key].OrderByDescending(x => x.UpdateTime))
+                {
+                    switch(order.Status)
+                    {
+                        case OrderStatus.Expired:
+                        case OrderStatus.Rejected:
+                        case OrderStatus.PendingCancel:
+                        case OrderStatus.Canceled:
+                            if (order.Side == OrderSide.Buy)
+                            {
+                                // newAssets.Cash += order.Price;
+                                // newAssets.Coins[symbol.Key] -= order.QuantityFilled;
+                            }
+                            else
+                            {
+                                // newAssets.Cash -= order.Price;
+                                // newAssets.Coins[symbol.Key] += order.QuantityFilled;
+                            }
+                            break;
+                        case OrderStatus.New:
+                            if (order.Side == OrderSide.Buy)
+                            {
+                                newAssets.Cash -= order.QuoteQuantityFilled;
+                                
+                                // newAssets.Coins[symbol.Key] -= order.QuantityFilled;
+                            }
+                            else
+                            {
+                                // newAssets.Cash += order.Price;
+                                // newAssets.Coins[symbol.Key] += order.QuantityFilled;
+                            }
+                            break;
+                        case OrderStatus.Filled:
+                            if (order.Side == OrderSide.Buy)
+                            {
+                                newAssets.Cash -= order.QuoteQuantityFilled;
+                                newAssets.Coins[symbol.Key] += order.Quantity;
+                                _currentDollarsInvestedByCoin[symbol.Key] += order.QuoteQuantityFilled;
+                                _totalDollarsInvestedByCoin[symbol.Key] += order.QuoteQuantityFilled;
+                                if (costBasisRemainingInCoins > 0)
+                                {
+                                    var percentOfOrder = Math.Min(costBasisRemainingInCoins / order.Quantity, 1);
+                                    _costBasis[symbol.Key] += percentOfOrder * order.QuoteQuantityFilled;
+                                    costBasisRemainingInCoins -= percentOfOrder * order.QuantityFilled;
+                                }
+                            }
+                            else
+                            {
+                                newAssets.Cash += order.QuoteQuantityFilled;
+                                newAssets.Coins[symbol.Key] -= order.Quantity;
+                                _currentDollarsInvestedByCoin[symbol.Key] -= order.QuoteQuantityFilled;
+                                totalDollarsSoldByCoin[symbol.Key] += order.QuoteQuantityFilled;
+                            }
+                            break;
+                    }
+                }
+
+                var dollarsSpent = _totalDollarsInvestedByCoin[symbol.Key] - _costBasis[symbol.Key];
+                Console.WriteLine(symbol.Key + " total spend: $" + dollarsSpent + " total sold: $" + totalDollarsSoldByCoin[symbol.Key]+ " profit: $" + (totalDollarsSoldByCoin[symbol.Key] - dollarsSpent));
+            }
+        }
+
+        public async Task Liquidate()
+        {
+            Console.WriteLine("Attempting to profitably liquidate assets...");
+            foreach (var symbol in _assets.Coins)
+            {
+                if (!_coinPrices.ContainsKey(symbol.Key) || !_costBasis.ContainsKey(symbol.Key))
+                {
+                    continue;
+                }
+                var coinValue = symbol.Value * _coinPrices[symbol.Key];
+                var dollarDelta = coinValue - _costBasis[symbol.Key];
+                decimal percentProfit;
+
+                if (coinValue > _costBasis[symbol.Key])
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    percentProfit = coinValue / _costBasis[symbol.Key];
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    percentProfit = _costBasis[symbol.Key] / coinValue;
+                }
+
+                Console.WriteLine(symbol.Key + ": $" + dollarDelta + " " + percentProfit + "%");
+                if (dollarDelta > 1)
+                {
+                    // sell everything
+                    await TradeCoin(symbol.Key,  _assets.Coins[symbol.Key], _coinPrices[symbol.Key], TimeInForce.GoodTillCancel, OrderSide.Sell);
+                }
+            }
+        }
+
+        private async Task RefreshSymbols()
+        {
+            var symbols = (await _client.Spot.System.GetExchangeInfoAsync()).Data.Symbols;
+            foreach(var symbol in symbols)
+            {
+                if (symbol.QuoteAsset == "USD")
+                {
+                    _symbols.Add(symbol.Name.Replace("USD",""), symbol);
+                }
+            }
+        }
+
+        public async Task Trade(bool liquidate)
         {
             await Task.WhenAll(
                 RefreshMarketPrices(),
@@ -479,10 +635,19 @@ namespace bae_trader.Brains
             );
 
             // Orders need to know our assets first.
+            await RefreshSymbols();
             await RefreshOrders();
+            await RefreshCostBasis();
+
+            if (liquidate)
+            {
+                await Liquidate();
+            }
 
             // Socket time
-            await StartSockets();   
+            await StartSockets();
+
+            await PlaceMissingOrders();
         }
     }
 }

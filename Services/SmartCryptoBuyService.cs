@@ -22,7 +22,7 @@ namespace bae_trader.Services
                 return .1M;
             }
 
-            return Math.Min(_symbolPoints[symbol], 10) / 10M;
+            return Math.Min(_symbolPoints[symbol], 100) / 100M;
 
         }
 
