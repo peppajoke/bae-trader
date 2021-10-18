@@ -13,7 +13,9 @@ namespace bae_trader.Configuration
         public int BuyPercentThreshold { get;set; }
         public int SellPercentThreshold { get;set; }
 
-        public IEnumerable<string> AllUsedSymbols 
+        public bool AutoTradeNewCoins { get; set; }
+
+        public IEnumerable<string> AllUsedSymbols
         {
             get { return AutoBuy.Concat(AutoSell); }
         }
