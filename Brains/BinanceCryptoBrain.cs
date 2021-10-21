@@ -46,6 +46,9 @@ namespace bae_trader.Brains
 
         private Dictionary<string,decimal> _costBasis = new Dictionary<string, decimal>();
 
+        // autotraded coins that bae picked out
+        private HashSet<string> _creepyCoins = new HashSet<string>();
+
         public BinanceCryptoBrain(CryptoConfig config)
         {
             _client = new BinanceClient(new BinanceClientOptions() 
@@ -93,7 +96,7 @@ namespace bae_trader.Brains
 
             var allNewCoins = exchangeInfo.Data.Symbols.Where(
                 x => !_config.AllUsedSymbols.Contains(x.BaseAsset) && x.QuoteAsset == "USD" && !x.BaseAsset.Contains("USD")).Select(x => x.BaseAsset);
-
+            _creepyCoins = allNewCoins.ToHashSet();
 
             Console.WriteLine("Subscribing to updates...");
             var subscribeResult = await _socketClient.Spot.SubscribeToUserDataUpdatesAsync(listenKeyResultAccount.Data, 
@@ -307,7 +310,7 @@ namespace bae_trader.Brains
                         var success = await TradeCoin(symbol, targetQuantity, targetPrice, TimeInForce.GoodTillCancel, OrderSide.Buy);
                         processedSymbols.Add(symbol);
 
-                        _sellService.ResetSymbol(symbol);
+                        //_sellService.ResetSymbol(symbol);
 
                     }
                     await Task.Delay(100);
@@ -324,7 +327,11 @@ namespace bae_trader.Brains
                     {
                         await RefreshHeldAssets();
                         await RefreshOrders();
-                        await Liquidate();
+                        if (_assets.Cash < GetTotalPortfolioValue() * .5M)
+                        {
+                            await Liquidate();
+                        }
+                        
                         await PlaceMissingOrders();
                         await RefreshHeldAssets();
                         await RefreshOrders();
@@ -380,9 +387,9 @@ namespace bae_trader.Brains
             await TradeCoin(symbol,  targetSellOffQuantity, targetPrice, TimeInForce.GoodTillCancel, OrderSide.Sell);
             if (_assets.Coins[symbol] == targetSellOffQuantity)
             {
-                _sellService.ResetSymbol(symbol);
+                //_sellService.ResetSymbol(symbol);
             }
-            _buyService.ResetSymbol(symbol);
+            //_buyService.ResetSymbol(symbol);
         }
 
         private async void SocketOrdersUpdate(BinanceStreamOrderList data)
@@ -424,7 +431,7 @@ namespace bae_trader.Brains
 
         private async Task RefreshOrders()
         {
-            foreach (var symbol in _config.AllUsedSymbols)
+            foreach (var symbol in _config.AllUsedSymbols.Concat(_assets.Coins.Keys))
             {
                 var orders = await _client.Spot.Order.GetOrdersAsync(symbol + "USD");
                 _orders[symbol] = orders.Data ?? new List<BinanceOrder>();
@@ -543,7 +550,7 @@ namespace bae_trader.Brains
             var newAssets = new BinanceAssets();
             newAssets.Coins = new Dictionary<string,decimal>();
 
-            foreach(var symbol in _orders)
+            foreach(var symbol in _assets.Coins)
             {
                 newAssets.Coins[symbol.Key] = 0M;
                 _currentDollarsInvestedByCoin[symbol.Key] = 0M;
@@ -630,10 +637,6 @@ namespace bae_trader.Brains
 
         public async Task Liquidate()
         {
-            if (_assets.Cash < GetTotalPortfolioValue() * .5M)
-            {
-                return;
-            }
             Console.WriteLine("Attempting to profitably liquidate assets...");
             foreach (var symbol in _assets.Coins)
             {
@@ -660,7 +663,7 @@ namespace bae_trader.Brains
                 if (dollarDelta > 1)
                 {
                     // sell everything
-                    if (_config.AutoSell.Contains(symbol.Key))
+                    if (_config.AutoSell.Concat(_creepyCoins).Contains(symbol.Key))
                     {
                         await TradeCoin(symbol.Key,  _assets.Coins[symbol.Key], _coinPrices[symbol.Key], TimeInForce.GoodTillCancel, OrderSide.Sell);
                     }
@@ -692,15 +695,15 @@ namespace bae_trader.Brains
             await RefreshOrders();
             await RefreshCostBasis();
 
-            if (liquidate)
-            {
-                await Liquidate();
-            }
-
             // Socket time
             await StartSockets();
 
             await PlaceMissingOrders();
+
+            if (liquidate)
+            {
+                await Liquidate();
+            }
         }
     }
 }
