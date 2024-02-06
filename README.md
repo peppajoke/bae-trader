@@ -1,3 +1,5 @@
+![Build Status](https://github.com/peppajoke/bae-trader/actions/workflows/dotnet.yml/badge.svg)
+
 # bae-trader
 Bae-trader is an all purpose investment manager. Currently, bae-trader supports algorithmic stock trading via Alpaca Markets API, and crypto trading via Binance API.
 
